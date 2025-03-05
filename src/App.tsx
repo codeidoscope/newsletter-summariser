@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { fetchEmails, fetchUserProfile } from './services/googleApi';
 import { summarizeEmail } from './services/openaiApi';
-import { trackLogin } from './services/trackingService';
+import { trackLogin, trackLogout, initVisibilityTracking } from './services/trackingService';
 import { Email, UserProfile } from './types';
 import Login from './components/Login';
 import Header from './components/Header';
@@ -27,6 +27,9 @@ function App() {
           
           // Track user login
           await trackLogin(userProfile);
+          
+          // Initialize visibility tracking
+          initVisibilityTracking(userProfile);
           
           await loadEmails();
         } catch (error) {
@@ -98,7 +101,12 @@ function App() {
     setAccessToken(token);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Track logout event before clearing user data
+    if (user) {
+      await trackLogout(user);
+    }
+    
     setAccessToken(null);
     setUser(null);
     setEmails([]);

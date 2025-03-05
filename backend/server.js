@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const port = process.env.PORT || 5175;
+const port = process.env.PORT || 5175; // Change to match the frontend
 
 // Middleware
 app.use(cors());
@@ -28,10 +28,11 @@ async function initTrackingFile() {
   }
 }
 
-// API endpoints
-app.post('/api/track/login', async (req, res) => {
+// Generic track endpoint to handle different event types
+app.post('/api/track/:eventType', async (req, res) => {
   try {
-    const { email, name, timestamp } = req.body;
+    const { eventType } = req.params;
+    const { email, name, timestamp, details } = req.body;
     
     if (!email || !timestamp) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -41,13 +42,14 @@ app.post('/api/track/login', async (req, res) => {
     const data = await fs.readFile(trackingDataPath, 'utf8');
     const trackingData = JSON.parse(data || '[]');
     
-    // Add new login event
+    // Add new event
     trackingData.push({
       email,
       name,
-      event: 'login',
+      event: eventType,
       timestamp,
-      ip: req.ip || req.connection.remoteAddress
+      ip: req.ip || req.connection.remoteAddress,
+      details: details || {} // Additional event-specific data
     });
     
     // Write updated data back to file
@@ -55,8 +57,8 @@ app.post('/api/track/login', async (req, res) => {
     
     res.status(200).json({ success: true });
   } catch (error) {
-    console.error('Error tracking login:', error);
-    res.status(500).json({ error: 'Failed to track login' });
+    console.error(`Error tracking ${req.params.eventType}:`, error);
+    res.status(500).json({ error: `Failed to track ${req.params.eventType}` });
   }
 });
 

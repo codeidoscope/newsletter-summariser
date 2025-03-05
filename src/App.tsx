@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { fetchEmails, fetchUserProfile } from './services/googleApi';
 import { summarizeEmail } from './services/openaiApi';
+import { trackLogin } from './services/trackingService';
 import { Email, UserProfile } from './types';
 import Login from './components/Login';
 import Header from './components/Header';
@@ -23,6 +24,10 @@ function App() {
         try {
           const userProfile = await fetchUserProfile(accessToken);
           setUser(userProfile);
+          
+          // Track user login
+          await trackLogin(userProfile);
+          
           await loadEmails();
         } catch (error) {
           console.error('Error loading user data:', error);

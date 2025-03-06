@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { fetchEmails, fetchUserProfile } from './services/googleApi';
 import { summarizeEmail } from './services/openaiApi';
-import { trackLogin, trackLogout, initVisibilityTracking } from './services/trackingService';
+import { trackLogin, trackLogout, initTracking } from './services/trackingService';
 import { Email, UserProfile } from './types';
 import Login from './components/Login';
 import Header from './components/Header';
@@ -18,6 +18,9 @@ function App() {
   const hasOpenAIKey = Boolean(import.meta.env.VITE_OPENAI_API_KEY);
 
   useEffect(() => {
+    // Initialize tracking when app loads
+    initTracking();
+    
     // If we have an access token, fetch user profile and emails
     if (accessToken) {
       const loadUserData = async () => {
@@ -26,10 +29,7 @@ function App() {
           setUser(userProfile);
           
           // Track user login
-          await trackLogin(userProfile);
-          
-          // Initialize visibility tracking
-          initVisibilityTracking(userProfile);
+          await trackLogin();
           
           await loadEmails();
         } catch (error) {
@@ -103,9 +103,7 @@ function App() {
 
   const handleLogout = async () => {
     // Track logout event before clearing user data
-    if (user) {
-      await trackLogout(user);
-    }
+    await trackLogout();
     
     setAccessToken(null);
     setUser(null);

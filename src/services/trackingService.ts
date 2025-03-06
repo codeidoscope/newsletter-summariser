@@ -4,6 +4,9 @@ import { throttle, debounce } from 'lodash';
 // Base URL for the tracking API
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5175/api';
 
+// Define a type for scroll depth sections
+type ScrollDepthSection = 'top' | 'quarter' | 'half' | 'threequarters' | 'bottom';
+
 // Scroll tracking state
 const scrollState = {
   lastPosition: 0,
@@ -27,7 +30,7 @@ const scrollState = {
   // Last time we updated the current depth timing
   lastDepthUpdate: 0,
   // Current depth section
-  currentDepth: 'top',
+  currentDepth: 'top' as ScrollDepthSection,
   // Elements that have been seen
   visibleElements: new Set<string>(),
   // Rapid scroll detection
@@ -93,12 +96,148 @@ export const trackTabVisible = async (): Promise<void> => {
 };
 
 /**
- * Tracks mouse clicks for heatmap
+ * Check if an element has a specific class
+ */
+const hasClass = (element: HTMLElement, className: string): boolean => {
+  // Handle SVG elements and other cases where className is not a string
+  if (typeof element.className === 'string') {
+    return element.className.split(' ').includes(className);
+  } else if (element.classList && element.classList.contains) {
+    // Use classList if available (most modern browsers)
+    return element.classList.contains(className);
+  } else {
+    // Fallback for other cases
+    return false;
+  }
+};
+
+/**
+ * Get a descriptive name for the clicked element
+ */
+const getElementDescription = (element: HTMLElement): string => {
+  // Check for expandable email items (specific to this app)
+  if (isEmailItem(element)) {
+    const isExpanded = isElementExpanded(element);
+    return isExpanded ? "collapse email item" : "expand email item";
+  }
+  
+  // Try to get description from various attributes
+  // 1. Check for button text
+  if (element.tagName.toLowerCase() === 'button' && element.textContent?.trim()) {
+    return `button: ${element.textContent.trim()}`;
+  }
+  
+  // 2. Check for aria-label (accessibility description)
+  if (element.getAttribute('aria-label')) {
+    return element.getAttribute('aria-label') || '';
+  }
+  
+  // 3. Check for title attribute
+  if (element.getAttribute('title')) {
+    return element.getAttribute('title') || '';
+  }
+  
+  // 4. Check for name attribute (form elements)
+  if (element.getAttribute('name')) {
+    return `${element.tagName.toLowerCase()}: ${element.getAttribute('name')}`;
+  }
+  
+  // 5. Check for placeholder (input fields)
+  if (element.getAttribute('placeholder')) {
+    return `input: ${element.getAttribute('placeholder')}`;
+  }
+  
+  // 6. Check for id attribute if it's descriptive (not auto-generated)
+  const id = element.getAttribute('id');
+  if (id && !id.match(/^[a-z0-9]{8,}$/i)) { // Skip IDs that look like auto-generated
+    return `element: ${id}`;
+  }
+  
+  // 7. Check for text content for clickable elements
+  if (isClickable(element) && element.textContent?.trim()) {
+    const text = element.textContent.trim();
+    return text.length > 30 ? text.substring(0, 30) + '...' : text;
+  }
+  
+  // 8. Check for Lucide icons (used in the app)
+  const iconElement = element.closest('[data-lucide]');
+  if (iconElement) {
+    const iconName = iconElement.getAttribute('data-lucide');
+    if (iconName === 'chevron-down') return 'expand email icon';
+    if (iconName === 'chevron-up') return 'collapse email icon';
+    if (iconName === 'refresh-cw') return 'refresh emails icon';
+    if (iconName === 'log-out') return 'logout icon';
+    if (iconName === 'mail') return 'mail icon';
+    return `icon: ${iconName}`;
+  }
+  
+  // 9. Check for common UI patterns based on classes
+  if (hasClass(element, 'refresh')) return 'refresh button';
+  if (hasClass(element, 'logout')) return 'logout button';
+  if (hasClass(element, 'login')) return 'login button';
+  
+  // If all else fails, return the element type and a class if available
+  let className = '';
+  if (typeof element.className === 'string') {
+    className = element.className;
+  } else if (element.classList && element.classList.value) {
+    className = element.classList.value;
+  }
+  
+  return `${element.tagName.toLowerCase()}${className ? ': ' + className : ''}`;
+};
+
+/**
+ * Check if element is an email item in the list
+ */
+const isEmailItem = (element: HTMLElement): boolean => {
+  // Check if the element or its parent is an email item
+  const item = element.closest('.border.rounded-lg');
+  if (!item) return false;
+  
+  // Verify it has subject and from information (email item specific)
+  return !!item.querySelector('.font-medium.text-lg') && 
+         !!item.querySelector('.text-sm.text-gray-600');
+};
+
+/**
+ * Determine if an email item is expanded or collapsed
+ */
+const isElementExpanded = (element: HTMLElement): boolean => {
+  // Find the closest email item container
+  const item = element.closest('.border.rounded-lg');
+  if (!item) return false;
+  
+  // Look for expanded content or an up chevron icon
+  return !!item.querySelector('.px-4.pb-4') || !!item.querySelector('[data-lucide="chevron-up"]');
+};
+
+/**
+ * Check if an element is meant to be clickable
+ */
+const isClickable = (element: HTMLElement): boolean => {
+  const clickableTags = ['a', 'button', 'input', 'select', 'textarea'];
+  if (clickableTags.includes(element.tagName.toLowerCase())) return true;
+  
+  if (element.getAttribute('role') === 'button') return true;
+  if (element.getAttribute('onclick')) return true;
+  if (element.getAttribute('tabindex') === '0') return true;
+  
+  const style = window.getComputedStyle(element);
+  if (style.cursor === 'pointer') return true;
+  
+  return false;
+};
+
+/**
+ * Tracks mouse clicks with enhanced element identification
  */
 const trackClick = async (e: MouseEvent): Promise<void> => {
   const { clientX, clientY } = e;
   const targetElement = e.target as HTMLElement;
-  const elementType = targetElement.tagName.toLowerCase();
+  
+  // Get detailed description of what was clicked
+  const elementDescription = getElementDescription(targetElement);
   
   await trackEvent('click', {
     x: clientX,
@@ -106,8 +245,11 @@ const trackClick = async (e: MouseEvent): Promise<void> => {
     viewportWidth: window.innerWidth,
     viewportHeight: window.innerHeight,
     path: window.location.pathname,
-    elementType,
-    elementClasses: targetElement.className || ''
+    elementType: targetElement.tagName.toLowerCase(),
+    elementClasses: typeof targetElement.className === 'string' ? 
+      targetElement.className : 
+      (targetElement.classList ? targetElement.classList.value : ''),
+    description: elementDescription
   });
 };
 
@@ -134,7 +276,9 @@ const trackFocus = async (e: FocusEvent): Promise<void> => {
   
   await trackEvent('focus', {
     elementType: targetElement.tagName.toLowerCase(),
-    elementClasses: targetElement.className || '',
+    elementClasses: typeof targetElement.className === 'string' ? 
+      targetElement.className : 
+      (targetElement.classList ? targetElement.classList.value : ''),
     path: window.location.pathname
   });
 };
@@ -164,8 +308,10 @@ const updateScrollDepthTiming = (): void => {
   const now = Date.now();
   const timeDiff = now - scrollState.lastDepthUpdate;
   
-  if (scrollState.lastDepthUpdate > 0 && scrollState.currentDepth) {
-    scrollState.timeAtDepth[scrollState.currentDepth] += timeDiff;
+  if (scrollState.lastDepthUpdate > 0) {
+    // Use the currentDepth as a key, which we now know is of type ScrollDepthSection
+    const depth = scrollState.currentDepth;
+    scrollState.timeAtDepth[depth] += timeDiff;
   }
   
   scrollState.lastDepthUpdate = now;
@@ -177,7 +323,7 @@ const updateScrollDepthTiming = (): void => {
 const updateCurrentDepth = (scrollPercent: number): void => {
   const oldDepth = scrollState.currentDepth;
   
-  let newDepth = 'top';
+  let newDepth: ScrollDepthSection = 'top';
   if (scrollPercent >= 87.5) {
     newDepth = 'bottom';
   } else if (scrollPercent >= 62.5) {
@@ -283,9 +429,6 @@ const trackScroll = throttle((): void => {
   // Check for visible elements
   checkVisibleElements();
   
-  // Get reading pattern
-  const readingPattern = getReadingPattern();
-  
   // Only send detailed scroll data periodically or on direction change
   if (directionChanged) {
     // Convert Set to Array for serialization
@@ -298,7 +441,6 @@ const trackScroll = throttle((): void => {
       newDirection: scrollState.direction,
       percentage: Math.round(scrollPercentage),
       visibleSections,
-      pattern: readingPattern
     });
   }
   
@@ -316,6 +458,9 @@ const trackScrollEnd = debounce((): void => {
   // Convert Set to Array for serialization
   const viewedSections = Array.from(scrollState.visibleElements);
   
+  // Get reading pattern
+  const readingPattern = getReadingPattern();
+  
   trackEvent('scroll_session', {
     totalScrollDistance: Math.abs(window.scrollY - scrollState.initialPosition),
     reachedBottom: scrollState.milestones['100%'],
@@ -326,9 +471,10 @@ const trackScrollEnd = debounce((): void => {
       threeQuarters: Math.round(scrollState.timeAtDepth.threequarters / 1000),
       bottom: Math.round(scrollState.timeAtDepth.bottom / 1000)
     },
-    viewedSections
+    viewedSections,
+    pattern: readingPattern,
   });
-}, 1000); // Wait 1 second after scrolling stops
+}, 3000); // Wait 3 seconds after scrolling stops
 
 /**
  * Initializes all tracking for the current session

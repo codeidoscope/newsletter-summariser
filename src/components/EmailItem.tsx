@@ -22,22 +22,8 @@ const EmailItem: React.FC<EmailItemProps> = ({ email }) => {
           </div>
           <p className="text-sm text-gray-600 mt-1">{email.from}</p>
           {!expanded && (
-            <p className="text-sm mt-2 text-gray-700 line-clamp-2">{email.snippet}</p>
-          )}
-        </div>
-        <div className="ml-4">
-          {expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-        </div>
-      </div>
-      
-      {expanded && (
-        <div className="px-4 pb-4 border-t border-gray-100">
-          <div className="mt-3">
-            <h4 className="font-medium text-sm text-gray-700 mb-1">Original Email:</h4>
-            <p className="text-sm whitespace-pre-line bg-gray-50 p-3 rounded">{email.body || email.snippet}</p>
-          </div>
-          
-          <div className="mt-4">
+            // <p className="text-sm mt-2 text-gray-700 line-clamp-2">{email.snippet}</p>
+            <div className="mt-3">
             <h4 className="font-medium text-sm text-gray-700 mb-1">Summary:</h4>
             {email.isLoading ? (
               <div className="flex items-center text-sm text-gray-500 bg-gray-50 p-3 rounded">
@@ -49,6 +35,33 @@ const EmailItem: React.FC<EmailItemProps> = ({ email }) => {
             ) : (
               <p className="text-sm text-gray-500 bg-gray-50 p-3 rounded">No summary available</p>
             )}
+          </div>
+          )}
+        </div>
+        <div className="ml-4">
+          {expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+        </div>
+      </div>
+      
+      {expanded && (
+        <div className="px-4 pb-4 border-t border-gray-100">
+          <div className="mt-3">
+            <h4 className="font-medium text-sm text-gray-700 mb-1">Summary:</h4>
+            {email.isLoading ? (
+              <div className="flex items-center text-sm text-gray-500 bg-gray-50 p-3 rounded">
+                <RefreshCw className="animate-spin mr-2" size={16} />
+                Generating summary...
+              </div>
+            ) : email.summary ? (
+              <p className="text-sm bg-blue-50 p-3 rounded">{email.summary}</p>
+            ) : (
+              <p className="text-sm text-gray-500 bg-gray-50 p-3 rounded">No summary available</p>
+            )}
+          </div>
+          
+          <div className="mt-4">
+            <h4 className="font-medium text-sm text-gray-700 mb-1">Original Email:</h4>
+            <p className="text-sm whitespace-pre-line bg-gray-50 p-3 rounded">{email.body || email.snippet}</p>
           </div>
         </div>
       )}

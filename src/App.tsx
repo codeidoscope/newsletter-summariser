@@ -115,8 +115,8 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
             ? { 
                 ...prevEmail, 
                 summary, 
-                newsletterType, 
-                unsubscribeLink,
+                newsletterType: newsletterType || undefined, // Convert null to undefined
+                unsubscribeLink: unsubscribeLink || undefined, // Convert null to undefined
                 isLoading: false 
               } 
             : prevEmail

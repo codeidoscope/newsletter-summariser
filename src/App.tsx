@@ -95,41 +95,47 @@ function App() {
     }
   };
 
-  const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
-    // Create a copy of emails with isLoading flag for summaries
-    const emailsWithLoadingState = emailsToProcess.map(email => ({
-      ...email,
-      isLoading: true
-    }));
-    setEmails(emailsWithLoadingState);
+const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
+  // Create a copy of emails with isLoading flag for summaries
+  const emailsWithLoadingState = emailsToProcess.map(email => ({
+    ...email,
+    isLoading: true
+  }));
+  setEmails(emailsWithLoadingState);
 
-    // Process each email for summary
-    for (const email of emailsWithLoadingState) {
-      try {
-        const summary = await summarizeEmail(email);
-        
-        // Update the email with its summary
-        setEmails(prevEmails => 
-          prevEmails.map(prevEmail => 
-            prevEmail.id === email.id 
-              ? { ...prevEmail, summary, isLoading: false } 
-              : prevEmail
-          )
-        );
-      } catch (error) {
-        console.error(`Error summarizing email ${email.id}:`, error);
-        
-        // Mark as not loading even if there was an error
-        setEmails(prevEmails => 
-          prevEmails.map(prevEmail => 
-            prevEmail.id === email.id 
-              ? { ...prevEmail, isLoading: false } 
-              : prevEmail
-          )
-        );
-      }
+  // Process each email for summary
+  for (const email of emailsWithLoadingState) {
+    try {
+      const { summary, newsletterType, unsubscribeLink } = await summarizeEmail(email);
+      
+      // Update the email with its summary, newsletter type, and unsubscribe link
+      setEmails(prevEmails => 
+        prevEmails.map(prevEmail => 
+          prevEmail.id === email.id 
+            ? { 
+                ...prevEmail, 
+                summary, 
+                newsletterType, 
+                unsubscribeLink,
+                isLoading: false 
+              } 
+            : prevEmail
+        )
+      );
+    } catch (error) {
+      console.error(`Error summarizing email ${email.id}:`, error);
+      
+      // Mark as not loading even if there was an error
+      setEmails(prevEmails => 
+        prevEmails.map(prevEmail => 
+          prevEmail.id === email.id 
+            ? { ...prevEmail, isLoading: false } 
+            : prevEmail
+        )
+      );
     }
-  };
+  }
+};
 
   const handleLogin = (token: string) => {
     setAccessToken(token);

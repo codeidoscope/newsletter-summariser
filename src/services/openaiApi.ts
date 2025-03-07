@@ -8,7 +8,7 @@ const openai = new OpenAI({
   dangerouslyAllowBrowser: true // Only for demo purposes
 });
 
-export const summarizeEmail = async (email: Email): Promise<string> => {
+export const summarizeEmail = async (email: Email): Promise<{summary: string, newsletterType: string | null, unsubscribeLink: string | null}> => {
   try {
     const content = `
       Subject: ${email.subject}
@@ -23,19 +23,50 @@ export const summarizeEmail = async (email: Email): Promise<string> => {
       messages: [
         {
           role: "system",
-          content: "You are a helpful assistant that summarizes emails concisely. Focus on key points, action items, and important details. Keep summaries under 100 words."
+          content: "You will be provided with a newsletter email and your task is to summarise the email as follows:\n\n " +
+                "-Overall summary of email summarised under 'Overall Summary'\n\n " +
+                "-What type of newsletter it is under 'Newsletter Type'\n\n" +
+                "-The link to unsubscribe from the newsletter but only if you can find a URL under 'Unsubscribe Link'"
         },
         {
           role: "user",
-          content: `Please summarize this email: ${content}`
+          content: content
         }
       ],
-      max_tokens: 150
+      temperature: 0.7,
+      top_p: 1
     });
 
-    return response.choices[0].message.content || "No summary available";
+    const responseContent = response.choices[0].message.content || "No summary available";
+    const { overallSummary, newsletterType, unsubscribeLink } = extractBodyDataComponents(responseContent);
+
+    return {
+      summary: overallSummary || responseContent, // Fallback to full response if parsing fails
+      newsletterType,
+      unsubscribeLink
+    };
   } catch (error) {
     console.error('Error summarizing email with OpenAI:', error);
-    return "Error generating summary. Please try again.";
+    return {
+      summary: "Error generating summary. Please try again.",
+      newsletterType: null,
+      unsubscribeLink: null
+    };
   }
+};
+
+const extractBodyDataComponents = (bodyData: string) => {
+  const overallSummaryMatch = bodyData.match(/Overall Summary:\s*(.*?)(?=\s*Newsletter Type:)/s);
+  const newsletterTypeMatch = bodyData.match(/Newsletter Type:\s*(.*?)(?=\s*Unsubscribe Link:)/s);
+  const unsubscribeLinkMatch = bodyData.match(/Unsubscribe Link:\s*(https?:\/\/\S+)/);
+
+  const overallSummary = overallSummaryMatch ? overallSummaryMatch[1].trim() : null;
+  const newsletterType = newsletterTypeMatch ? newsletterTypeMatch[1].trim() : null;
+  const unsubscribeLink = unsubscribeLinkMatch ? unsubscribeLinkMatch[1].trim() : null;
+
+  return {
+    overallSummary,
+    newsletterType,
+    unsubscribeLink
+  };
 };

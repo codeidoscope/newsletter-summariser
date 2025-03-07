@@ -20,7 +20,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       console.error('Login Failed', errorResponse);
       setError('Failed to log in with Google. Please try again.');
     },
-    scope: 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+    // Update scopes to include modify permission for marking as read and deleting emails
+    scope: 'https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
   });
 
   const handleLogin = () => {

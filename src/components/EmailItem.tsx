@@ -1,12 +1,14 @@
 import React, { useState, useRef } from 'react';
-import { ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
+import { ChevronDown, ChevronUp, RefreshCw, Trash, CheckSquare, Loader } from 'lucide-react';
 import { Email } from '../types';
 
 interface EmailItemProps {
   email: Email;
+  onMarkAsRead: (emailId: string) => Promise<void>;
+  onDeleteEmail: (emailId: string) => Promise<void>;
 }
 
-const EmailItem: React.FC<EmailItemProps> = ({ email }) => {
+const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmail }) => {
   const [expanded, setExpanded] = useState(false);
   const emailRef = useRef<HTMLDivElement>(null);
 
@@ -20,6 +22,16 @@ const EmailItem: React.FC<EmailItemProps> = ({ email }) => {
       });
     }
     setExpanded(newState);
+  };
+  
+  const handleMarkAsRead = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent expanding/collapsing the email
+    onMarkAsRead(email.id);
+  };
+  
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent expanding/collapsing the email
+    onDeleteEmail(email.id);
   };
 
   return (
@@ -36,22 +48,64 @@ const EmailItem: React.FC<EmailItemProps> = ({ email }) => {
             <h3 className="font-medium text-lg">{email.subject}</h3>
             <span className="text-sm text-gray-500">{email.date}</span>
           </div>
-          <p className="text-sm text-gray-600 mt-1">
-            {email.from}
-            {email.unsubscribeLink && (
-              <span className="ml-2">
-                <a 
-                  href={email.unsubscribeLink} 
-                  className="text-blue-500 hover:underline"
-                  onClick={(e) => e.stopPropagation()} // Prevent expanding when clicking the link
-                  target="_blank" 
-                  rel="noopener noreferrer"
+          
+          {/* Changed from <p> to <div> to fix DOM nesting issue */}
+          <div className="text-sm text-gray-600 mt-1 flex items-center">
+            <span className="flex-1">
+              {email.from}
+              {email.isUnread && (
+                <span className="ml-2 bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">
+                  New
+                </span>
+              )}
+              {email.unsubscribeLink && (
+                <span className="ml-2">
+                  <a 
+                    href={email.unsubscribeLink} 
+                    className="text-blue-500 hover:underline"
+                    onClick={(e) => e.stopPropagation()} // Prevent expanding when clicking the link
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                  >
+                    Unsubscribe
+                  </a>
+                </span>
+              )}
+            </span>
+            <div className="flex space-x-2 ml-2">
+              {email.isUnread && (
+                <button
+                  className="text-blue-500 hover:text-blue-700 p-1 rounded hover:bg-blue-50 flex items-center text-xs"
+                  onClick={handleMarkAsRead}
+                  disabled={email.actionLoading === 'mark-read'}
+                  title="Mark as read"
                 >
-                  Unsubscribe
-                </a>
-              </span>
-            )}
-          </p>
+                  {email.actionLoading === 'mark-read' ? (
+                    <Loader size={14} className="animate-spin" />
+                  ) : (
+                    <>
+                      <CheckSquare size={14} className="mr-1" /> Mark read
+                    </>
+                  )}
+                </button>
+              )}
+              <button
+                className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 flex items-center text-xs"
+                onClick={handleDelete}
+                disabled={email.actionLoading === 'delete'}
+                title="Delete email"
+              >
+                {email.actionLoading === 'delete' ? (
+                  <Loader size={14} className="animate-spin" />
+                ) : (
+                  <>
+                    <Trash size={14} className="mr-1" /> Delete
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+          
           {!expanded && (
             <div className="mt-3">
               <h4 className="font-medium text-sm text-gray-700 mb-1">Summary:</h4>
@@ -106,11 +160,43 @@ const EmailItem: React.FC<EmailItemProps> = ({ email }) => {
           <div className="mt-4">
             <h4 className="font-medium text-sm text-gray-700 mb-1">Original Email:</h4>
             <p className="text-sm whitespace-pre-line bg-gray-50 p-3 rounded">{email.body || email.snippet}</p>
-            <div
-              className="mt-3 p-2 cursor-pointer flex items-center justify-center text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
-              onClick={() => toggleExpanded(false)}
-            >
-              <ChevronUp size={20} className="mr-2" /> Close original email
+            
+            <div className="flex mt-3">
+              <div className="flex space-x-2 mr-auto">
+                {email.isUnread && (
+                  <button
+                    className="text-blue-500 hover:text-blue-700 p-1 rounded hover:bg-blue-50 flex items-center text-sm"
+                    onClick={handleMarkAsRead}
+                    disabled={email.actionLoading === 'mark-read'}
+                  >
+                    {email.actionLoading === 'mark-read' ? (
+                      <Loader size={16} className="animate-spin mr-1" />
+                    ) : (
+                      <CheckSquare size={16} className="mr-1" />
+                    )}
+                    Mark as read
+                  </button>
+                )}
+                <button
+                  className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 flex items-center text-sm"
+                  onClick={handleDelete}
+                  disabled={email.actionLoading === 'delete'}
+                >
+                  {email.actionLoading === 'delete' ? (
+                    <Loader size={16} className="animate-spin mr-1" />
+                  ) : (
+                    <Trash size={16} className="mr-1" />
+                  )}
+                  Delete
+                </button>
+              </div>
+              
+              <div
+                className="p-2 cursor-pointer flex items-center justify-center text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
+                onClick={() => toggleExpanded(false)}
+              >
+                <ChevronUp size={20} className="mr-2" /> Close original email
+              </div>
             </div>
           </div>
         </div>

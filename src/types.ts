@@ -10,6 +10,8 @@ export interface Email {
   newsletterType?: string;
   unsubscribeLink?: string;
   isLoading?: boolean;
+  isUnread?: boolean;
+  actionLoading?: 'mark-read' | 'delete' | null;
 }
 
 export interface UserProfile {

@@ -98,7 +98,7 @@ export const fetchEmails = async (accessToken: string, maxResults = 10): Promise
           }
         );
 
-        const { payload, snippet, internalDate } = messageResponse.data;
+        const { payload, snippet, internalDate, labelIds } = messageResponse.data;
         
         // Extract headers
         const headers = payload.headers;
@@ -117,8 +117,18 @@ export const fetchEmails = async (accessToken: string, maxResults = 10): Promise
           body = decodeBase64(payload.body.data);
         }
 
-        // Format date
-        const date = new Date(parseInt(internalDate)).toLocaleString();
+        // Format date without seconds
+        const date = new Date(parseInt(internalDate)).toLocaleString(undefined, {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          // seconds are intentionally omitted
+        });
+
+        // Check if the email is unread
+        const isUnread = labelIds && labelIds.includes('UNREAD');
 
         return {
           id: message.id,
@@ -128,6 +138,7 @@ export const fetchEmails = async (accessToken: string, maxResults = 10): Promise
           from,
           date,
           body,
+          isUnread,
         };
       })
     );
@@ -135,6 +146,50 @@ export const fetchEmails = async (accessToken: string, maxResults = 10): Promise
     return emails;
   } catch (error) {
     console.error('Error fetching emails:', error);
+    throw error;
+  }
+};
+
+/**
+ * Marks an email as read by removing the UNREAD label
+ */
+export const markEmailAsRead = async (accessToken: string, messageId: string): Promise<boolean> => {
+  try {
+    await googleApiClient.post(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/modify`,
+      {
+        removeLabelIds: ['UNREAD']
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+    return true;
+  } catch (error) {
+    console.error('Error marking email as read:', error);
+    throw error;
+  }
+};
+
+/**
+ * Deletes an email by moving it to trash
+ */
+export const deleteEmail = async (accessToken: string, messageId: string): Promise<boolean> => {
+  try {
+    await googleApiClient.post(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/trash`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+    return true;
+  } catch (error) {
+    console.error('Error deleting email:', error);
     throw error;
   }
 };

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import { fetchEmails, fetchUserProfile } from './services/googleApi';
+import { fetchEmails, fetchUserProfile, markEmailAsRead, deleteEmail } from './services/googleApi';
 import { summarizeEmail } from './services/openaiApi';
 import { trackLogin, trackLogout, initTracking } from './services/trackingService';
 import { saveToken, getToken, removeToken, validateToken } from './services/authService';
@@ -152,6 +152,74 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
     setUser(null);
     setEmails([]);
   };
+  
+  const handleMarkAsRead = async (emailId: string) => {
+    if (!accessToken) return;
+    
+    // Set the loading state for this specific email action
+    setEmails(prevEmails => 
+      prevEmails.map(email => 
+        email.id === emailId 
+          ? { ...email, actionLoading: 'mark-read' } 
+          : email
+      )
+    );
+    
+    try {
+      await markEmailAsRead(accessToken, emailId);
+      
+      // Update the email status in our local state
+      setEmails(prevEmails => 
+        prevEmails.map(email => 
+          email.id === emailId 
+            ? { ...email, isUnread: false, actionLoading: null } 
+            : email
+        )
+      );
+    } catch (error) {
+      console.error('Error marking email as read:', error);
+      
+      // Clear loading state on error
+      setEmails(prevEmails => 
+        prevEmails.map(email => 
+          email.id === emailId 
+            ? { ...email, actionLoading: null } 
+            : email
+        )
+      );
+    }
+  };
+  
+  const handleDeleteEmail = async (emailId: string) => {
+    if (!accessToken) return;
+    
+    // Set the loading state for this specific email action
+    setEmails(prevEmails => 
+      prevEmails.map(email => 
+        email.id === emailId 
+          ? { ...email, actionLoading: 'delete' } 
+          : email
+      )
+    );
+    
+    try {
+      await deleteEmail(accessToken, emailId);
+      
+      // Remove the email from our local state
+      setEmails(prevEmails => prevEmails.filter(email => email.id !== emailId));
+    } catch (error) {
+      console.error('Error deleting email:', error);
+      
+      // Clear loading state on error
+      setEmails(prevEmails => 
+        prevEmails.map(email => 
+          email.id === emailId 
+            ? { ...email, actionLoading: null } 
+            : email
+        )
+      );
+    }
+  };
 
   if (isAuthLoading) {
     return (
@@ -184,7 +252,9 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
               <EmailList 
                 emails={emails} 
                 onRefresh={loadEmails} 
-                isLoading={isLoading} 
+                isLoading={isLoading}
+                onMarkAsRead={handleMarkAsRead}
+                onDeleteEmail={handleDeleteEmail}
               />
             </main>
           </>

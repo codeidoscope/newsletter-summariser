@@ -7,9 +7,11 @@ interface EmailListProps {
   emails: Email[];
   onRefresh: () => void;
   isLoading: boolean;
+  onMarkAsRead: (emailId: string) => Promise<void>;
+  onDeleteEmail: (emailId: string) => Promise<void>;
 }
 
-const EmailList: React.FC<EmailListProps> = ({ emails, onRefresh, isLoading }) => {
+const EmailList: React.FC<EmailListProps> = ({ emails, onRefresh, isLoading, onMarkAsRead, onDeleteEmail }) => {
   return (
     <div className="w-full max-w-4xl mx-auto">
       <div className="flex justify-between items-center mb-4">
@@ -42,7 +44,12 @@ const EmailList: React.FC<EmailListProps> = ({ emails, onRefresh, isLoading }) =
       ) : (
         <div className="space-y-4">
           {emails.map((email) => (
-            <EmailItem key={email.id} email={email} />
+            <EmailItem 
+              key={email.id} 
+              email={email} 
+              onMarkAsRead={onMarkAsRead}
+              onDeleteEmail={onDeleteEmail}
+            />
           ))}
         </div>
       )}

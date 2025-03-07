@@ -41,6 +41,32 @@ export const fetchUserProfile = async (accessToken: string): Promise<UserProfile
   }
 };
 
+/**
+ * Properly decodes a base64 string to UTF-8 text
+ */
+const decodeBase64 = (base64: string): string => {
+  // Replace URL-safe Base64 characters
+  const sanitizedBase64 = base64.replace(/-/g, '+').replace(/_/g, '/');
+
+  try {
+    // Decode the Base64 to a binary string
+    const binaryString = atob(sanitizedBase64);
+
+    // Convert to Uint8Array
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    // Use TextDecoder to convert to UTF-8
+    return new TextDecoder('utf-8').decode(bytes);
+  } catch (error) {
+    console.error('Error decoding base64:', error);
+    // Fallback to basic atob if the above fails
+    return atob(sanitizedBase64);
+  }
+};
+
 // Function to fetch emails from Gmail
 export const fetchEmails = async (accessToken: string, maxResults = 10): Promise<Email[]> => {
   try {
@@ -79,16 +105,16 @@ export const fetchEmails = async (accessToken: string, maxResults = 10): Promise
         const subject = headers.find((header: { name: string }) => header.name === 'Subject')?.value || 'No Subject';
         const from = headers.find((header: { name: string }) => header.name === 'From')?.value || 'Unknown Sender';
         
-        // Extract body
+        // Extract body with proper UTF-8 decoding
         let body = '';
         if (payload.parts && payload.parts.length > 0) {
           // Find the text/plain part
           const textPart = payload.parts.find((part: any) => part.mimeType === 'text/plain');
           if (textPart && textPart.body && textPart.body.data) {
-            body = atob(textPart.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+            body = decodeBase64(textPart.body.data);
           }
         } else if (payload.body && payload.body.data) {
-          body = atob(payload.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+          body = decodeBase64(payload.body.data);
         }
 
         // Format date

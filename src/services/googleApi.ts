@@ -1,10 +1,30 @@
 import axios from 'axios';
 import { Email, UserProfile } from '../types';
+import { removeToken } from './authService';
+
+// Create an axios instance for Google API calls
+const googleApiClient = axios.create();
+
+// Add response interceptor to handle auth errors
+googleApiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // If the error is due to an invalid token
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      console.error('Authentication error with Google API, clearing token');
+      // Clear the token
+      removeToken();
+      // Optionally, you could force a page reload here to restart the auth flow
+      // window.location.reload();
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Function to fetch user profile information
 export const fetchUserProfile = async (accessToken: string): Promise<UserProfile> => {
   try {
-    const response = await axios.get('https://www.googleapis.com/oauth2/v1/userinfo', {
+    const response = await googleApiClient.get('https://www.googleapis.com/oauth2/v1/userinfo', {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
@@ -25,7 +45,7 @@ export const fetchUserProfile = async (accessToken: string): Promise<UserProfile
 export const fetchEmails = async (accessToken: string, maxResults = 10): Promise<Email[]> => {
   try {
     // First, get the list of messages
-    const messagesResponse = await axios.get(
+    const messagesResponse = await googleApiClient.get(
       `https://gmail.googleapis.com/gmail/v1/users/me/messages`,
       {
         headers: {
@@ -40,7 +60,7 @@ export const fetchEmails = async (accessToken: string, maxResults = 10): Promise
     // For each message ID, get the full message details
     const emails: Email[] = await Promise.all(
       messagesResponse.data.messages.map(async (message: { id: string; threadId: string }) => {
-        const messageResponse = await axios.get(
+        const messageResponse = await googleApiClient.get(
           `https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}`,
           {
             headers: {

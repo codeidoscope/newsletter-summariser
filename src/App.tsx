@@ -3,6 +3,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { fetchEmails, fetchUserProfile } from './services/googleApi';
 import { summarizeEmail } from './services/openaiApi';
 import { trackLogin, trackLogout, initTracking } from './services/trackingService';
+import { saveToken, getToken, removeToken, validateToken } from './services/authService';
 import { Email, UserProfile } from './types';
 import Login from './components/Login';
 import Header from './components/Header';
@@ -13,6 +14,7 @@ function App() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [emails, setEmails] = useState<Email[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
 
   // Check if we have an OpenAI API key
   const hasOpenAIKey = Boolean(import.meta.env.VITE_OPENAI_API_KEY);
@@ -21,6 +23,35 @@ function App() {
     // Initialize tracking when app loads
     initTracking();
     
+    // Check for existing token in localStorage on app init
+    const initAuth = async () => {
+      setIsAuthLoading(true);
+      const savedToken = getToken();
+
+      if (savedToken) {
+        try {
+          // Validate the token first
+          const isValid = await validateToken(savedToken);
+          
+          if (isValid) {
+            setAccessToken(savedToken);
+          } else {
+            // Token is invalid, remove it
+            removeToken();
+          }
+        } catch (error) {
+          console.error('Error validating saved token:', error);
+          removeToken();
+        }
+      }
+
+      setIsAuthLoading(false);
+    };
+
+    initAuth();
+  }, []);
+
+  useEffect(() => {
     // If we have an access token, fetch user profile and emails
     if (accessToken) {
       const loadUserData = async () => {
@@ -28,6 +59,9 @@ function App() {
           const userProfile = await fetchUserProfile(accessToken);
           setUser(userProfile);
           
+          // Save token to localStorage for persistence
+          saveToken(accessToken);
+
           // Track user login
           await trackLogin();
           
@@ -105,10 +139,24 @@ function App() {
     // Track logout event before clearing user data
     await trackLogout();
     
+    // Clear token from localStorage
+    removeToken();
+    
     setAccessToken(null);
     setUser(null);
     setEmails([]);
   };
+
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>

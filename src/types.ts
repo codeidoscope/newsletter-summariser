@@ -7,6 +7,8 @@ export interface Email {
   date: string;
   body?: string;
   summary?: string;
+  newsletterType?: string;
+  unsubscribeLink?: string;
   isLoading?: boolean;
 }
 

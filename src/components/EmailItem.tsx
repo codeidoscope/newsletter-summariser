@@ -36,7 +36,22 @@ const EmailItem: React.FC<EmailItemProps> = ({ email }) => {
             <h3 className="font-medium text-lg">{email.subject}</h3>
             <span className="text-sm text-gray-500">{email.date}</span>
           </div>
-          <p className="text-sm text-gray-600 mt-1">{email.from}</p>
+          <p className="text-sm text-gray-600 mt-1">
+            {email.from}
+            {email.unsubscribeLink && (
+              <span className="ml-2">
+                <a 
+                  href={email.unsubscribeLink} 
+                  className="text-blue-500 hover:underline"
+                  onClick={(e) => e.stopPropagation()} // Prevent expanding when clicking the link
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  Unsubscribe
+                </a>
+              </span>
+            )}
+          </p>
           {!expanded && (
             <div className="mt-3">
               <h4 className="font-medium text-sm text-gray-700 mb-1">Summary:</h4>
@@ -46,7 +61,14 @@ const EmailItem: React.FC<EmailItemProps> = ({ email }) => {
                   Generating summary...
                 </div>
               ) : email.summary ? (
-                <p className="text-sm bg-blue-50 p-3 rounded">{email.summary}</p>
+                <div>
+                  <p className="text-sm bg-blue-50 p-3 rounded">{email.summary}</p>
+                  {email.newsletterType && (
+                    <p className="text-sm bg-green-50 p-2 rounded mt-2">
+                      <span className="font-medium">Newsletter Type:</span> {email.newsletterType}
+                    </p>
+                  )}
+                </div>
               ) : (
                 <p className="text-sm text-gray-500 bg-gray-50 p-3 rounded">No summary available</p>
               )}
@@ -68,7 +90,14 @@ const EmailItem: React.FC<EmailItemProps> = ({ email }) => {
                 Generating summary...
               </div>
             ) : email.summary ? (
-              <p className="text-sm bg-blue-50 p-3 rounded">{email.summary}</p>
+              <div>
+                <p className="text-sm bg-blue-50 p-3 rounded">{email.summary}</p>
+                {email.newsletterType && (
+                  <p className="text-sm bg-green-50 p-2 rounded mt-2">
+                    <span className="font-medium">Newsletter Type:</span> {email.newsletterType}
+                  </p>
+                )}
+              </div>
             ) : (
               <p className="text-sm text-gray-500 bg-gray-50 p-3 rounded">No summary available</p>
             )}

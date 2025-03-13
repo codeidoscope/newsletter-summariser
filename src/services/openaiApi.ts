@@ -24,7 +24,7 @@ export const summarizeEmail = async (email: Email): Promise<{summary: string, ne
         {
           role: "system",
           content: "You will be provided with a newsletter email and your task is to summarise the email as follows:\n\n " +
-                "-Overall summary of email summarised under 'Overall Summary'\n\n " +
+                "-Under 'Overall Summary', summarize the newsletter in details. If it contains multiple sections, summarize each section separately rather than providing a single overall summary. Include key points, important details, and any action items mentioned in each section.\n\n " +
                 "-What type of newsletter it is under 'Newsletter Type'\n\n" +
                 "-The link to unsubscribe from the newsletter. It's a URL after some text that says unsubscribe or change email preferences. Return nothing if you can't find it"
         },

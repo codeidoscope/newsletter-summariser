@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { ChevronDown, ChevronUp, RefreshCw, Trash, CheckSquare, Loader } from 'lucide-react';
 import { Email } from '../types';
+import EmailRenderer from './EmailRenderer';
 
 interface EmailItemProps {
   email: Email;
@@ -73,6 +74,26 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
               )}
             </span>
             <div className="flex space-x-2 ml-2">
+            <a
+                href={`https://mail.google.com/mail/u/0/#inbox/${email.id}`}
+                className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50 flex items-center text-xs"
+                onClick={(e) => e.stopPropagation()} // Prevent expanding when clicking the link
+                target="_blank"
+                rel="noopener noreferrer"
+                title="View in Gmail"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  width="14"
+                  height="14"
+                  className="mr-1"
+                  fill="currentColor"
+                >
+                  <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8l8 5 8-5v10zm-8-7L4 6h16l-8 5z" />
+                </svg>
+                View in Gmail
+              </a>
               {email.isUnread && (
                 <button
                   className="text-blue-500 hover:text-blue-700 p-1 rounded hover:bg-blue-50 flex items-center text-xs"
@@ -84,7 +105,7 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
                     <Loader size={14} className="animate-spin" />
                   ) : (
                     <>
-                      <CheckSquare size={14} className="mr-1" /> Mark read
+                      <CheckSquare size={14} className="mr-1" /> Mark as read
                     </>
                   )}
                 </button>
@@ -99,7 +120,7 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
                   <Loader size={14} className="animate-spin" />
                 ) : (
                   <>
-                    <Trash size={14} className="mr-1" /> Delete
+                    <Trash size={14} className="mr-1" /> Delete email
                   </>
                 )}
               </button>
@@ -159,7 +180,14 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
           
           <div className="mt-4">
             <h4 className="font-medium text-sm text-gray-700 mb-1">Original Email:</h4>
-            <p className="text-sm whitespace-pre-line bg-gray-50 p-3 rounded">{email.body || email.snippet}</p>
+
+            <div className="bg-gray-50 p-3 rounded text-sm max-h-[500px] overflow-y-auto">
+              <EmailRenderer
+                htmlContent={email.htmlBody}
+                textContent={email.textBody || email.snippet}
+                className="email-content"
+              />
+            </div>
             
             <div className="flex mt-3">
               <div className="flex space-x-2 mr-auto">
@@ -177,6 +205,25 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
                     Mark as read
                   </button>
                 )}
+                <a
+                  href={`https://mail.google.com/mail/u/0/#inbox/${email.id}`}
+                  className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50 flex items-center text-sm"
+                  onClick={(e) => e.stopPropagation()} // Prevent expanding when clicking the link
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    width="16"
+                    height="16"
+                    className="mr-1"
+                    fill="currentColor"
+                  >
+                    <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8l8 5 8-5v10zm-8-7L4 6h16l-8 5z" />
+                  </svg>
+                  View in Gmail
+                </a>
                 <button
                   className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 flex items-center text-sm"
                   onClick={handleDelete}

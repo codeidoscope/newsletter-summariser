@@ -67,6 +67,60 @@ const decodeBase64 = (base64: string): string => {
   }
 };
 
+/**
+ * Find the unsubscribe link in email headers
+ */
+const findUnsubscribeLink = (headers: any[]): string | null => {
+  // Look for List-Unsubscribe header
+  const unsubscribeHeader = headers.find(
+    (header) => header.name.toLowerCase() === 'list-unsubscribe'
+  );
+
+  if (unsubscribeHeader && unsubscribeHeader.value) {
+    // Extract URL from <url> format
+    const match = unsubscribeHeader.value.match(/<(https?:\/\/[^>]+)>/);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+
+  return null;
+};
+
+/**
+ * Extract email content from message payload
+ */
+const extractEmailContent = (payload: any): { htmlBody: string; textBody: string } => {
+  let htmlBody = '';
+  let textBody = '';
+
+  // Helper function to process MIME parts recursively
+  const processPart = (part: any) => {
+    const mimeType = part.mimeType;
+
+    if (mimeType === 'text/plain' && part.body && part.body.data) {
+      textBody = decodeBase64(part.body.data);
+    } else if (mimeType === 'text/html' && part.body && part.body.data) {
+      htmlBody = decodeBase64(part.body.data);
+    } else if (part.parts && part.parts.length > 0) {
+      // Recursively process nested parts
+      part.parts.forEach((subPart: any) => processPart(subPart));
+    }
+  };
+
+  // Handle single-part message
+  if (payload.mimeType === 'text/plain' && payload.body && payload.body.data) {
+    textBody = decodeBase64(payload.body.data);
+  } else if (payload.mimeType === 'text/html' && payload.body && payload.body.data) {
+    htmlBody = decodeBase64(payload.body.data);
+  } else if (payload.parts && payload.parts.length > 0) {
+    // Process multipart message
+    payload.parts.forEach((part: any) => processPart(part));
+  }
+
+  return { htmlBody, textBody };
+};
+
 // Function to fetch emails from Gmail
 export const fetchEmails = async (accessToken: string, maxResults = 10): Promise<Email[]> => {
   try {
@@ -104,18 +158,12 @@ export const fetchEmails = async (accessToken: string, maxResults = 10): Promise
         const headers = payload.headers;
         const subject = headers.find((header: { name: string }) => header.name === 'Subject')?.value || 'No Subject';
         const from = headers.find((header: { name: string }) => header.name === 'From')?.value || 'Unknown Sender';
-        
-        // Extract body with proper UTF-8 decoding
-        let body = '';
-        if (payload.parts && payload.parts.length > 0) {
-          // Find the text/plain part
-          const textPart = payload.parts.find((part: any) => part.mimeType === 'text/plain');
-          if (textPart && textPart.body && textPart.body.data) {
-            body = decodeBase64(textPart.body.data);
-          }
-        } else if (payload.body && payload.body.data) {
-          body = decodeBase64(payload.body.data);
-        }
+
+        // Find unsubscribe link in headers
+        const headerUnsubscribeLink = findUnsubscribeLink(headers);
+
+        // Extract both HTML and text bodies
+        const { htmlBody, textBody } = extractEmailContent(payload);
 
         // Format date without seconds
         const date = new Date(parseInt(internalDate)).toLocaleString(undefined, {
@@ -137,7 +185,9 @@ export const fetchEmails = async (accessToken: string, maxResults = 10): Promise
           snippet,
           from,
           date,
-          body,
+          htmlBody,
+          textBody,
+          unsubscribeLink: headerUnsubscribeLink,
           isUnread,
         };
       })

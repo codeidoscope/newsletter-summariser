@@ -11,6 +11,11 @@
     word-wrap: break-word;
   }
 
+  /* Dark mode for email renderer */
+  .dark .email-renderer {
+    color: #e5e7eb;
+  }
+
   /* Ensure images don't overflow */
   .email-renderer img {
     max-width: 100%;
@@ -21,6 +26,10 @@
   .email-renderer a {
     color: #2563eb;
     text-decoration: none;
+  }
+
+  .dark .email-renderer a {
+    color: #60a5fa;
   }
 
   .email-renderer a:hover {
@@ -46,12 +55,22 @@
     padding: 0.5rem;
   }
 
+  .dark .email-renderer td,
+  .dark .email-renderer th {
+    border-color: #4b5563;
+  }
+
   /* Handle blockquotes (often used in email replies) */
   .email-renderer blockquote {
     border-left: 3px solid #e5e7eb;
     margin-left: 0;
     padding-left: 1rem;
     color: #4b5563;
+  }
+
+  .dark .email-renderer blockquote {
+    border-left-color: #4b5563;
+    color: #9ca3af;
   }
 
   /* Handle lists */
@@ -84,4 +103,9 @@
     border-top: 1px solid #e5e7eb;
     color: #6b7280;
     font-size: 0.875rem;
+  }
+
+  .dark .email-renderer .email-signature {
+    border-top-color: #4b5563;
+    color: #9ca3af;
   }

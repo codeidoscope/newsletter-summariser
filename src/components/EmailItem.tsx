@@ -51,7 +51,7 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
   return (
     <div
       ref={emailRef}
-      className="border rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow"
+      className="border dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all"
     >
       <div 
         className="p-4 cursor-pointer flex justify-between items-start"
@@ -59,16 +59,16 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
       >
         <div className="flex-1">
           <div className="flex justify-between">
-            <h3 className="font-medium text-lg">{email.subject}</h3>
-            <span className="text-sm text-gray-500">{email.date}</span>
+            <h3 className="font-medium text-lg text-gray-900 dark:text-white">{email.subject}</h3>
+            <span className="text-sm text-gray-500 dark:text-gray-400">{email.date}</span>
           </div>
           
           {/* Changed from <p> to <div> to fix DOM nesting issue */}
-          <div className="text-sm text-gray-600 mt-1 flex items-center">
+          <div className="text-sm text-gray-600 dark:text-gray-300 mt-1 flex items-center">
             <span className="flex-1">
               {email.from}
               {email.isUnread && (
-                <span className="ml-2 bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">
+                <span className="ml-2 bg-blue-500 dark:bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
                   New
                 </span>
               )}
@@ -76,7 +76,7 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
                 <span className="ml-2">
                   <a 
                     href={unsubscribeLink}
-                    className="text-blue-500 hover:underline"
+                    className="text-blue-500 dark:text-blue-400 hover:underline"
                     onClick={(e) => e.stopPropagation()} // Prevent expanding when clicking the link
                     target="_blank" 
                     rel="noopener noreferrer"
@@ -89,7 +89,7 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
             <div className="flex space-x-2 ml-2">
             <a
                 href={`https://mail.google.com/mail/u/0/#inbox/${email.id}`}
-                className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50 flex items-center text-xs"
+                className="text-green-600 hover:text-green-800 dark:text-green-500 dark:hover:text-green-400 p-1 rounded hover:bg-green-50 dark:hover:bg-green-900/30 flex items-center text-xs"
                 onClick={(e) => e.stopPropagation()} // Prevent expanding when clicking the link
                 target="_blank"
                 rel="noopener noreferrer"
@@ -109,7 +109,7 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
               </a>
               {email.isUnread && (
                 <button
-                  className="text-blue-500 hover:text-blue-700 p-1 rounded hover:bg-blue-50 flex items-center text-xs"
+                  className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 flex items-center text-xs"
                   onClick={handleMarkAsRead}
                   disabled={email.actionLoading === 'mark-read'}
                   title="Mark as read"
@@ -124,7 +124,7 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
                 </button>
               )}
               <button
-                className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 flex items-center text-xs"
+                className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center text-xs"
                 onClick={handleDelete}
                 disabled={email.actionLoading === 'delete'}
                 title="Delete email"
@@ -142,59 +142,59 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
           
           {!expanded && (
             <div className="mt-3">
-              <h4 className="font-medium text-sm text-gray-700 mb-1">Summary:</h4>
+              <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300 mb-1">Summary:</h4>
               {email.isLoading ? (
-                <div className="flex items-center text-sm text-gray-500 bg-gray-50 p-3 rounded">
+                <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 p-3 rounded">
                   <RefreshCw className="animate-spin mr-2" size={16} />
                   Generating summary...
                 </div>
               ) : email.summary ? (
                 <div>
-                  <p className="text-sm bg-blue-50 p-3 rounded">{email.summary}</p>
+                  <p className="text-sm bg-blue-50 dark:bg-blue-900/30 text-gray-800 dark:text-gray-200 p-3 rounded">{email.summary}</p>
                   {email.newsletterType && (
-                    <p className="text-sm bg-green-50 p-2 rounded mt-2">
+                    <p className="text-sm bg-green-50 dark:bg-green-900/30 text-gray-800 dark:text-gray-200 p-2 rounded mt-2">
                       <span className="font-medium">Newsletter Type:</span> {email.newsletterType}
                     </p>
                   )}
                 </div>
               ) : (
-                <p className="text-sm text-gray-500 bg-gray-50 p-3 rounded">No summary available</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 p-3 rounded">No summary available</p>
               )}
             </div>
           )}
         </div>
-        <div className="ml-4">
+        <div className="ml-4 text-gray-500 dark:text-gray-400">
           {expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </div>
       </div>
       
       {expanded && (
-        <div className="px-4 pb-4 border-t border-gray-100">
+        <div className="px-4 pb-4 border-t border-gray-100 dark:border-gray-700">
           <div className="mt-3">
-            <h4 className="font-medium text-sm text-gray-700 mb-1">Summary:</h4>
+            <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300 mb-1">Summary:</h4>
             {email.isLoading ? (
-              <div className="flex items-center text-sm text-gray-500 bg-gray-50 p-3 rounded">
+              <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 p-3 rounded">
                 <RefreshCw className="animate-spin mr-2" size={16} />
                 Generating summary...
               </div>
             ) : email.summary ? (
               <div>
-                <p className="text-sm bg-blue-50 p-3 rounded">{email.summary}</p>
+                <p className="text-sm bg-blue-50 dark:bg-blue-900/30 text-gray-800 dark:text-gray-200 p-3 rounded">{email.summary}</p>
                 {email.newsletterType && (
-                  <p className="text-sm bg-green-50 p-2 rounded mt-2">
+                  <p className="text-sm bg-green-50 dark:bg-green-900/30 text-gray-800 dark:text-gray-200 p-2 rounded mt-2">
                     <span className="font-medium">Newsletter Type:</span> {email.newsletterType}
                   </p>
                 )}
               </div>
             ) : (
-              <p className="text-sm text-gray-500 bg-gray-50 p-3 rounded">No summary available</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 p-3 rounded">No summary available</p>
             )}
           </div>
           
           <div className="mt-4">
-            <h4 className="font-medium text-sm text-gray-700 mb-1">Original Email:</h4>
+            <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300 mb-1">Original Email:</h4>
 
-            <div className="bg-gray-50 p-3 rounded text-sm max-h-[500px] overflow-y-auto">
+            <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded text-sm max-h-[500px] overflow-y-auto">
               <EmailRenderer
                 htmlContent={email.htmlBody}
                 textContent={email.textBody || email.snippet}
@@ -206,7 +206,7 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
               <div className="flex space-x-2 mr-auto">
                 {email.isUnread && (
                   <button
-                    className="text-blue-500 hover:text-blue-700 p-1 rounded hover:bg-blue-50 flex items-center text-sm"
+                    className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 flex items-center text-sm"
                     onClick={handleMarkAsRead}
                     disabled={email.actionLoading === 'mark-read'}
                   >
@@ -220,7 +220,7 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
                 )}
                 <a
                   href={`https://mail.google.com/mail/u/0/#inbox/${email.id}`}
-                  className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50 flex items-center text-sm"
+                  className="text-green-600 hover:text-green-800 dark:text-green-500 dark:hover:text-green-400 p-1 rounded hover:bg-green-50 dark:hover:bg-green-900/30 flex items-center text-sm"
                   onClick={(e) => e.stopPropagation()} // Prevent expanding when clicking the link
                   target="_blank"
                   rel="noopener noreferrer"
@@ -238,7 +238,7 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
                   View in Gmail
                 </a>
                 <button
-                  className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 flex items-center text-sm"
+                  className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center text-sm"
                   onClick={handleDelete}
                   disabled={email.actionLoading === 'delete'}
                 >
@@ -247,12 +247,12 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
                   ) : (
                     <Trash size={16} className="mr-1" />
                   )}
-                  Delete
+                  Delete email
                 </button>
               </div>
               
               <div
-                className="p-2 cursor-pointer flex items-center justify-center text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
+                className="p-2 cursor-pointer flex items-center justify-center text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded"
                 onClick={() => toggleExpanded(false)}
               >
                 <ChevronUp size={20} className="mr-2" /> Close original email

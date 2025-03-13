@@ -5,6 +5,7 @@ import { summarizeEmail } from './services/openaiApi';
 import { trackLogin, trackLogout, initTracking } from './services/trackingService';
 import { saveToken, getToken, removeToken, validateToken } from './services/authService';
 import { Email, UserProfile } from './types';
+import { ThemeProvider } from './context/ThemeContext';
 import Login from './components/Login';
 import Header from './components/Header';
 import EmailList from './components/EmailList';
@@ -223,10 +224,10 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
 
   if (isAuthLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-300">Loading...</p>
         </div>
       </div>
     );
@@ -234,32 +235,34 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
 
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
-      <div className="min-h-screen bg-gray-50">
-        {!accessToken ? (
-          <Login onLogin={handleLogin} />
-        ) : (
-          <>
-            {user && <Header user={user} onLogout={handleLogout} />}
-            <main className="py-8 px-4 sm:px-6 lg:px-8">
-              {!hasOpenAIKey && (
-                <div className="max-w-4xl mx-auto mb-6 bg-yellow-50 border border-yellow-200 p-4 rounded-md">
-                  <p className="text-yellow-700">
-                    <strong>Note:</strong> OpenAI API key is not configured. Email summaries will not be generated.
-                    Please add your OpenAI API key as <code>VITE_OPENAI_API_KEY</code> in the environment variables.
-                  </p>
-                </div>
-              )}
-              <EmailList 
-                emails={emails} 
-                onRefresh={loadEmails} 
-                isLoading={isLoading}
-                onMarkAsRead={handleMarkAsRead}
-                onDeleteEmail={handleDeleteEmail}
-              />
-            </main>
-          </>
-        )}
-      </div>
+      <ThemeProvider>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+          {!accessToken ? (
+            <Login onLogin={handleLogin} />
+          ) : (
+            <>
+              {user && <Header user={user} onLogout={handleLogout} />}
+              <main className="py-8 px-4 sm:px-6 lg:px-8">
+                {!hasOpenAIKey && (
+                  <div className="max-w-4xl mx-auto mb-6 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 p-4 rounded-md">
+                    <p className="text-yellow-700 dark:text-yellow-400">
+                      <strong>Note:</strong> OpenAI API key is not configured. Email summaries will not be generated.
+                      Please add your OpenAI API key as <code className="bg-yellow-100 dark:bg-yellow-900 px-1 rounded">VITE_OPENAI_API_KEY</code> in the environment variables.
+                    </p>
+                  </div>
+                )}
+                <EmailList 
+                  emails={emails} 
+                  onRefresh={loadEmails} 
+                  isLoading={isLoading}
+                  onMarkAsRead={handleMarkAsRead}
+                  onDeleteEmail={handleDeleteEmail}
+                />
+              </main>
+            </>
+          )}
+        </div>
+      </ThemeProvider>
     </GoogleOAuthProvider>
   );
 }

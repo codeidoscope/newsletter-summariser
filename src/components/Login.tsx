@@ -31,19 +31,19 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full p-8 bg-white rounded-lg shadow-lg text-center">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 transition-colors">
+      <div className="max-w-md w-full p-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg text-center transition-colors">
         <div className="flex justify-center mb-6">
-          <div className="bg-blue-500 p-3 rounded-full">
+          <div className="bg-blue-500 dark:bg-blue-600 p-3 rounded-full">
             <Mail className="text-white" size={32} />
           </div>
         </div>
-        <h1 className="text-2xl font-bold mb-2">Email Summarizer</h1>
-        <p className="text-gray-600 mb-8">
+        <h1 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">Email Summarizer</h1>
+        <p className="text-gray-600 dark:text-gray-300 mb-8">
           Connect your Gmail account to get AI-powered summaries of your emails
         </p>
         {error && (
-          <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md text-sm">
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-md text-sm">
             {error}
           </div>
         )}
@@ -69,7 +69,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </>
           )}
         </button>
-        <p className="mt-4 text-xs text-gray-500">
+        <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
           We'll only access your emails to provide summaries. Your data is never stored.
         </p>
       </div>

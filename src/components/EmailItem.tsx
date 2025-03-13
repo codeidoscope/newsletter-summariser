@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, ChevronUp, RefreshCw, Trash, CheckSquare, Loader } from 'lucide-react';
 import { Email } from '../types';
 import EmailRenderer from './EmailRenderer';
@@ -12,6 +12,16 @@ interface EmailItemProps {
 const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmail }) => {
   const [expanded, setExpanded] = useState(false);
   const emailRef = useRef<HTMLDivElement>(null);
+
+  // Store the unsubscribe link in local state to preserve it between re-renders
+  const [unsubscribeLink, setUnsubscribeLink] = useState<string | undefined>(email.unsubscribeLink);
+
+  // Update local state when email prop changes, but only if the new value is defined
+  useEffect(() => {
+    if (email.unsubscribeLink) {
+      setUnsubscribeLink(email.unsubscribeLink);
+    }
+  }, [email.unsubscribeLink]);
 
   const toggleExpanded = (newState: boolean) => {
     // If we're collapsing the email
@@ -34,6 +44,9 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
     e.stopPropagation(); // Prevent expanding/collapsing the email
     onDeleteEmail(email.id);
   };
+
+  // Use local state to determine if we have an unsubscribe link
+  const hasUnsubscribeLink = Boolean(unsubscribeLink);
 
   return (
     <div
@@ -59,10 +72,10 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
                   New
                 </span>
               )}
-              {email.unsubscribeLink && (
+              {hasUnsubscribeLink && (
                 <span className="ml-2">
                   <a 
-                    href={email.unsubscribeLink} 
+                    href={unsubscribeLink}
                     className="text-blue-500 hover:underline"
                     onClick={(e) => e.stopPropagation()} // Prevent expanding when clicking the link
                     target="_blank" 

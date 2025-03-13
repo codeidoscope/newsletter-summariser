@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { ChevronDown, ChevronUp, RefreshCw, Trash, CheckSquare, Loader } from 'lucide-react';
 import { Email } from '../types';
+import EmailRenderer from './EmailRenderer';
 
 interface EmailItemProps {
   email: Email;
@@ -159,7 +160,15 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
           
           <div className="mt-4">
             <h4 className="font-medium text-sm text-gray-700 mb-1">Original Email:</h4>
-            <p className="text-sm whitespace-pre-line bg-gray-50 p-3 rounded break-words">{email.body || email.snippet}</p>
+
+            {/* Replace the plain text paragraph with our new EmailRenderer component */}
+            <div className="bg-gray-50 p-3 rounded text-sm max-h-[500px] overflow-y-auto">
+              <EmailRenderer
+                htmlContent={email.htmlBody}
+                textContent={email.textBody || email.snippet}
+                className="email-content"
+              />
+            </div>
             
             <div className="flex mt-3">
               <div className="flex space-x-2 mr-auto">

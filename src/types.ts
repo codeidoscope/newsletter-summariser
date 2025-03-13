@@ -5,7 +5,8 @@ export interface Email {
   snippet: string;
   from: string;
   date: string;
-  body?: string;
+  textBody?: string;
+  htmlBody?: string;
   summary?: string;
   newsletterType?: string;
   unsubscribeLink?: string;

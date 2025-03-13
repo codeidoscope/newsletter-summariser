@@ -12,6 +12,7 @@
   "dependencies": {
     "@react-oauth/google": "^0.12.1",
     "axios": "^1.6.7",
+    "dompurify": "^3.2.4",
     "lodash": "^4.17.21",
     "lucide-react": "^0.344.0",
     "openai": "^4.28.0",
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
+    "@types/dompurify": "^3.0.5",
     "@types/lodash": "^4.17.16",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",

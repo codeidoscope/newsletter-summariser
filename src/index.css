@@ -1,3 +1,87 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Base styles for email renderer */
+.email-renderer {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.5;
+    color: #333;
+    max-width: 100%;
+    word-wrap: break-word;
+  }
+
+  /* Ensure images don't overflow */
+  .email-renderer img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Style links in emails */
+  .email-renderer a {
+    color: #2563eb;
+    text-decoration: none;
+  }
+
+  .email-renderer a:hover {
+    text-decoration: underline;
+  }
+
+  /* Add some spacing between paragraphs */
+  .email-renderer p {
+    margin-bottom: 0.75rem;
+    margin-top: 0;
+  }
+
+  /* Make sure tables have proper borders */
+  .email-renderer table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  .email-renderer td, 
+  .email-renderer th {
+    border: 1px solid #ddd;
+    padding: 0.5rem;
+  }
+
+  /* Handle blockquotes (often used in email replies) */
+  .email-renderer blockquote {
+    border-left: 3px solid #e5e7eb;
+    margin-left: 0;
+    padding-left: 1rem;
+    color: #4b5563;
+  }
+
+  /* Handle lists */
+  .email-renderer ul,
+  .email-renderer ol {
+    padding-left: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .email-renderer li {
+    margin-bottom: 0.25rem;
+  }
+
+  /* Plain text specific styling */
+  .email-renderer.plain-text {
+    white-space: pre-wrap;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.875rem;
+  }
+
+  /* Style for long URLs */
+  .email-renderer a.long-url {
+    word-break: break-all;
+  }
+
+  /* Ensure proper spacing for email signatures */
+  .email-renderer .email-signature {
+    margin-top: 1.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #e5e7eb;
+    color: #6b7280;
+    font-size: 0.875rem;
+  }

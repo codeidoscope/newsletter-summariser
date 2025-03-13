@@ -158,7 +158,7 @@ export const fetchEmails = async (accessToken: string, maxResults = 10): Promise
         const headers = payload.headers;
         const subject = headers.find((header: { name: string }) => header.name === 'Subject')?.value || 'No Subject';
         const from = headers.find((header: { name: string }) => header.name === 'From')?.value || 'Unknown Sender';
-        x
+
         // Find unsubscribe link in headers
         const headerUnsubscribeLink = findUnsubscribeLink(headers);
 

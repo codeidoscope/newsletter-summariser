@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { fetchEmails, fetchUserProfile, markEmailAsRead, deleteEmail } from './services/googleApi';
 import { summarizeEmail } from './services/openaiApi';
@@ -6,9 +6,11 @@ import { trackLogin, trackLogout, initTracking } from './services/trackingServic
 import { saveToken, getToken, removeToken, validateToken } from './services/authService';
 import { Email, UserProfile } from './types';
 import { ThemeProvider } from './context/ThemeContext';
+import { parseEmailDate, isToday, isThisWeek } from './utils/dateUtils';
 import Login from './components/Login';
 import Header from './components/Header';
 import EmailList from './components/EmailList';
+import EmailFilter, { FilterOption } from './components/EmailFilter';
 
 function App() {
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -16,6 +18,7 @@ function App() {
   const [emails, setEmails] = useState<Email[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
+  const [activeFilter, setActiveFilter] = useState<FilterOption>('all');
 
   // Check if we have an OpenAI API key
   const hasOpenAIKey = Boolean(import.meta.env.VITE_OPENAI_API_KEY);
@@ -82,7 +85,8 @@ function App() {
     
     setIsLoading(true);
     try {
-      const fetchedEmails = await fetchEmails(accessToken);
+      const maxResults = 20
+      const fetchedEmails = await fetchEmails(accessToken, maxResults);
       setEmails(fetchedEmails);
       
       // Process emails for summaries if we have an OpenAI API key
@@ -93,6 +97,16 @@ function App() {
       console.error('Error loading emails:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Handle filter changes
+  const handleFilterChange = (filter: FilterOption) => {
+    setActiveFilter(filter);
+
+    // Reload emails when changing filters to ensure we have enough after filtering
+    if (filter !== 'all') {
+      loadEmails();
     }
   };
 
@@ -222,6 +236,29 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
     }
   };
 
+  // Apply filters to emails
+  const filteredEmails = useMemo(() => {
+    if (activeFilter === 'all') {
+      return emails;
+    }
+
+    return emails.filter(email => {
+      // Parse the email date
+      const emailDate = parseEmailDate(email.date);
+
+      switch (activeFilter) {
+        case 'unread':
+          return email.isUnread;
+        case 'today':
+          return isToday(emailDate);
+        case 'week':
+          return isThisWeek(emailDate);
+        default:
+          return true;
+      }
+    });
+  }, [emails, activeFilter]);
+
   if (isAuthLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -251,13 +288,29 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
                     </p>
                   </div>
                 )}
-                <EmailList 
-                  emails={emails} 
-                  onRefresh={loadEmails} 
-                  isLoading={isLoading}
-                  onMarkAsRead={handleMarkAsRead}
-                  onDeleteEmail={handleDeleteEmail}
-                />
+                <div className="max-w-4xl mx-auto">
+                  <EmailFilter
+                    activeFilter={activeFilter}
+                    onFilterChange={handleFilterChange}
+                  />
+
+                  <EmailList
+                    emails={filteredEmails}
+                    onRefresh={loadEmails}
+                    isLoading={isLoading}
+                    onMarkAsRead={handleMarkAsRead}
+                    onDeleteEmail={handleDeleteEmail}
+                    activeFilter={activeFilter}
+                  />
+
+                  {filteredEmails.length === 0 && !isLoading && (
+                    <div className="text-center py-10 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-gray-500 dark:text-gray-400">
+                        No emails match the current filter. Try another filter or refresh.
+                      </p>
+                    </div>
+                  )}
+                </div>
               </main>
             </>
           )}

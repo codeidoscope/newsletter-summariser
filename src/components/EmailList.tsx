@@ -1,7 +1,8 @@
 import React from 'react';
-import { Mail, RefreshCw } from 'lucide-react';
+import { Mail, RefreshCw, AlertCircle, Calendar, CalendarDays } from 'lucide-react';
 import { Email } from '../types';
 import EmailItem from './EmailItem';
+import { FilterOption } from './EmailFilter';
 
 interface EmailListProps {
   emails: Email[];
@@ -9,15 +10,56 @@ interface EmailListProps {
   isLoading: boolean;
   onMarkAsRead: (emailId: string) => Promise<void>;
   onDeleteEmail: (emailId: string) => Promise<void>;
+  activeFilter?: FilterOption;
 }
 
-const EmailList: React.FC<EmailListProps> = ({ emails, onRefresh, isLoading, onMarkAsRead, onDeleteEmail }) => {
+const EmailList: React.FC<EmailListProps> = ({ 
+  emails, 
+  onRefresh, 
+  isLoading, 
+  onMarkAsRead, 
+  onDeleteEmail, 
+  activeFilter = 'all' 
+}) => {
+  // Helper function to get the appropriate icon and title based on filter
+  const getFilterInfo = () => {
+    switch (activeFilter) {
+      case 'unread':
+        return { 
+          icon: <AlertCircle className="mr-2 dark:text-gray-200" size={20} />, 
+          title: 'Unread Emails' 
+        };
+      case 'today':
+        return { 
+          icon: <Calendar className="mr-2 dark:text-gray-200" size={20} />, 
+          title: 'Emails from Today' 
+        };
+      case 'week':
+        return { 
+          icon: <CalendarDays className="mr-2 dark:text-gray-200" size={20} />, 
+          title: 'Emails from This Week' 
+        };
+      default:
+        return { 
+          icon: <Mail className="mr-2 dark:text-gray-200" size={20} />, 
+          title: 'Recent Emails' 
+        };
+    }
+  };
+
+  const { icon, title } = getFilterInfo();
+
   return (
-    <div className="w-full max-w-4xl mx-auto">
+    <div className="w-full">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold flex items-center text-gray-900 dark:text-white">
-          <Mail className="mr-2 dark:text-gray-200" size={20} />
-          Recent Emails
+          {icon}
+          {title}
+          {emails.length > 0 && (
+            <span className="ml-2 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded-full">
+              {emails.length}
+            </span>
+          )}
         </h2>
         <button 
           onClick={onRefresh}

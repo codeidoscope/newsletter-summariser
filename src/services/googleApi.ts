@@ -122,7 +122,7 @@ const extractEmailContent = (payload: any): { htmlBody: string; textBody: string
 };
 
 // Function to fetch emails from Gmail
-export const fetchEmails = async (accessToken: string, maxResults = 10): Promise<Email[]> => {
+export const fetchEmails = async (accessToken: string, maxResults = 20): Promise<Email[]> => {
   try {
     // First, get the list of messages
     const messagesResponse = await googleApiClient.get(

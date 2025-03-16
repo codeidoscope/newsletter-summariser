@@ -122,8 +122,23 @@ const extractEmailContent = (payload: any): { htmlBody: string; textBody: string
 };
 
 // Function to fetch emails from Gmail
-export const fetchEmails = async (accessToken: string, maxResults = 20): Promise<Email[]> => {
+export const fetchEmails = async (
+  accessToken: string, 
+  maxResults = 20,
+  recipientFilter?: string | null
+): Promise<Email[]> => {
   try {
+    // Build query parameters
+    const params: Record<string, string | number> = {
+      maxResults
+    };
+    
+    // Add recipient filter if provided
+    if (recipientFilter) {
+      // Gmail search syntax for filtering by recipient
+      params.q = `to:${recipientFilter}`;
+    }
+
     // First, get the list of messages
     const messagesResponse = await googleApiClient.get(
       `https://gmail.googleapis.com/gmail/v1/users/me/messages`,
@@ -131,11 +146,14 @@ export const fetchEmails = async (accessToken: string, maxResults = 20): Promise
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
-        params: {
-          maxResults,
-        },
+        params
       }
     );
+
+    // If no messages are found, return empty array
+    if (!messagesResponse.data.messages || messagesResponse.data.messages.length === 0) {
+      return [];
+    }
 
     // For each message ID, get the full message details
     const emails: Email[] = await Promise.all(

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, ChevronUp, RefreshCw, Trash, CheckSquare, Loader } from 'lucide-react';
 import { Email } from '../types';
 import EmailRenderer from './EmailRenderer';
+import DeleteConfirmationDialog from './DeleteConfirmationDialog';
 
 interface EmailItemProps {
   email: Email;
@@ -12,6 +13,7 @@ interface EmailItemProps {
 const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmail }) => {
   const [expanded, setExpanded] = useState(false);
   const emailRef = useRef<HTMLDivElement>(null);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
 
   // Store the unsubscribe link in local state to preserve it between re-renders
   const [unsubscribeLink, setUnsubscribeLink] = useState<string | undefined>(email.unsubscribeLink);
@@ -42,7 +44,16 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
   
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent expanding/collapsing the email
+    setShowDeleteConfirmation(true);
+  };
+  
+  const confirmDelete = () => {
     onDeleteEmail(email.id);
+    setShowDeleteConfirmation(false);
+  };
+  
+  const cancelDelete = () => {
+    setShowDeleteConfirmation(false);
   };
 
   // Use local state to determine if we have an unsubscribe link
@@ -53,6 +64,14 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
       ref={emailRef}
       className="border dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all"
     >
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        isOpen={showDeleteConfirmation}
+        onCancel={cancelDelete}
+        onConfirm={confirmDelete}
+        emailSubject={email.subject}
+        isLoading={email.actionLoading === 'delete'}
+      />
       <div 
         className="p-4 cursor-pointer flex justify-between items-start"
         onClick={() => toggleExpanded(!expanded)}

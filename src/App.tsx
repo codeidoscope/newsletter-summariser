@@ -12,6 +12,9 @@ import Header from './components/Header';
 import EmailList from './components/EmailList';
 import EmailFilter, { FilterOption } from './components/EmailFilter';
 
+// Get the recipient filter from environment variables
+const RECIPIENT_FILTER = import.meta.env.VITE_RECIPIENT_FILTER || null;
+
 function App() {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -85,8 +88,9 @@ function App() {
     
     setIsLoading(true);
     try {
-      const maxResults = 20
-      const fetchedEmails = await fetchEmails(accessToken, maxResults);
+      const maxResults = 20;
+      // Pass the recipient filter from environment variable
+      const fetchedEmails = await fetchEmails(accessToken, maxResults, RECIPIENT_FILTER);
       setEmails(fetchedEmails);
       
       // Process emails for summaries if we have an OpenAI API key
@@ -288,11 +292,14 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
                     </p>
                   </div>
                 )}
+
                 <div className="max-w-4xl mx-auto">
-                  <EmailFilter
-                    activeFilter={activeFilter}
-                    onFilterChange={handleFilterChange}
-                  />
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-3 mb-4 shadow-sm">
+                    <EmailFilter
+                      activeFilter={activeFilter}
+                      onFilterChange={handleFilterChange}
+                    />
+                  </div>
 
                   <EmailList
                     emails={filteredEmails}
@@ -301,12 +308,21 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
                     onMarkAsRead={handleMarkAsRead}
                     onDeleteEmail={handleDeleteEmail}
                     activeFilter={activeFilter}
+                    selectedRecipient={RECIPIENT_FILTER}
                   />
 
                   {filteredEmails.length === 0 && !isLoading && (
                     <div className="text-center py-10 bg-gray-50 dark:bg-gray-800 rounded-lg">
                       <p className="text-gray-500 dark:text-gray-400">
                         No emails match the current filter. Try another filter or refresh.
+                      </p>
+                    </div>
+                  )}
+
+                  {RECIPIENT_FILTER && (
+                    <div className="max-w-4xl mx-auto mt-6 mb-6 bg-blue-25 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900 p-4 rounded-md">
+                      <p className="text-blue-500 text-xs dark:text-blue-300">
+                        <strong>Showing emails sent to:</strong> <code className="bg-blue-50 dark:bg-blue-900/30 px-1 rounded">{RECIPIENT_FILTER}</code>
                       </p>
                     </div>
                   )}

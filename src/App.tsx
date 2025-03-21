@@ -3,12 +3,12 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { fetchEmails, fetchUserProfile, markEmailAsRead, deleteEmail } from './services/googleApi';
 import { summarizeEmail } from './services/openaiApi';
 import { trackLogin, trackLogout, initTracking, sendTrackingDataAndClear } from './services/trackingService';
-import { sendTrackingBeacon } from './services/beaconService';
+import { sendTrackingBeacon } from './services/beaconService.ts';
 import { saveToken, getToken, removeToken, validateToken } from './services/authService';
 import { Email, UserProfile } from './types';
 import { ThemeProvider } from './context/ThemeContext';
 import { parseEmailDate, isToday, isThisWeek } from './utils/dateUtils';
-import { useVisibility } from './hooks/useVisibility';
+import { useVisibility } from './hooks/useVisibility.ts';
 import Login from './components/Login';
 import Header from './components/Header';
 import EmailList from './components/EmailList';
@@ -26,7 +26,7 @@ function App() {
   const hasOpenAIKey = Boolean(import.meta.env.VITE_OPENAI_API_KEY);
 
   // Use the visibility hook
-  const { isVisible, isUserActive } = useVisibility({
+  const {} = useVisibility({
     inactivityTimeout: 15 * 60 * 1000, // 15 minutes of inactivity
     onBecomeHidden: async () => {
       // When the tab becomes hidden and we have a user, send tracking data

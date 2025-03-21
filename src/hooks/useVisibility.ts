@@ -1,4 +1,3 @@
-// src/hooks/useVisibility.ts
 import { useState, useEffect, useRef } from 'react';
 
 interface VisibilityOptions {

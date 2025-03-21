@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { throttle, debounce } from 'lodash';
+import { sendTrackingBeacon } from './beaconService';
 
 // Base URL for the tracking API
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5175/api';
@@ -94,6 +95,57 @@ export const trackTabVisible = async (): Promise<void> => {
     url: window.location.pathname
   });
 };
+
+/**
+ * Send tracking data via email
+ */
+export const sendTrackingDataEmail = async (userEmail: string, reason: string): Promise<void> => {
+  try {
+    const url = `${API_BASE_URL}/send-tracking-data`;
+    
+    await axios.post(url, {
+      userEmail,
+      reason
+    });
+    
+    if (import.meta.env.DEV) {
+      console.log('Tracking data sent via email');
+    }
+  } catch (error) {
+    console.error('Error sending tracking data email:', error);
+  }
+};
+
+/**
+ * Clear tracking data after sending
+ */
+export const clearTrackingData = async (): Promise<void> => {
+  try {
+    const url = `${API_BASE_URL}/clear-tracking-data`;
+    
+    await axios.post(url, {});
+    
+    if (import.meta.env.DEV) {
+      console.log('Tracking data cleared');
+    }
+  } catch (error) {
+    console.error('Error clearing tracking data:', error);
+  }
+};
+
+/**
+ * Send tracking data and optionally clear it
+ */
+export const sendTrackingDataAndClear = async (userEmail: string, reason: string): Promise<void> => {
+  await sendTrackingDataEmail(userEmail, reason);
+  
+  // Optionally clear tracking data after sending
+  // Comment this out if you want to keep accumulating data
+  await clearTrackingData();
+};
+
+// Other tracking functions...
+// (Keep the rest of your original tracking functions here)
 
 /**
  * Check if an element has a specific class
@@ -528,52 +580,4 @@ export const initTracking = (): void => {
     viewportWidth: window.innerWidth,
     viewportHeight: window.innerHeight
   });
-};
-
-/**
- * Send tracking data via email
- */
-export const sendTrackingDataEmail = async (userEmail: string, reason: string): Promise<void> => {
-  try {
-    const url = `${API_BASE_URL}/send-tracking-data`;
-    
-    await axios.post(url, {
-      userEmail,
-      reason
-    });
-    
-    if (import.meta.env.DEV) {
-      console.log('Tracking data sent via email');
-    }
-  } catch (error) {
-    console.error('Error sending tracking data email:', error);
-  }
-};
-
-/**
- * Clear tracking data after sending
- */
-export const clearTrackingData = async (): Promise<void> => {
-  try {
-    const url = `${API_BASE_URL}/clear-tracking-data`;
-    
-    await axios.post(url, {});
-    
-    if (import.meta.env.DEV) {
-      console.log('Tracking data cleared');
-    }
-  } catch (error) {
-    console.error('Error clearing tracking data:', error);
-  }
-};
-
-/**
- * Send tracking data and optionally clear it
- */
-export const sendTrackingDataAndClear = async (userEmail: string, reason: string): Promise<void> => {
-  await sendTrackingDataEmail(userEmail, reason);
-  
-  // Optionally clear tracking data after sending
-  // Comment this out if you want to keep accumulating data
-  await clearTrackingData();
 };

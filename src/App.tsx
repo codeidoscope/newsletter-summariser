@@ -2,8 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { fetchEmails, fetchUserProfile, markEmailAsRead, deleteEmail } from './services/googleApi';
 import { summarizeEmail } from './services/openaiApi';
-import { trackLogin, trackLogout, initTracking, sendTrackingDataAndClear } from './services/trackingService';
-import { sendTrackingBeacon } from './services/beaconService.ts';
+import { trackLogin, trackLogout, initTracking, sendTrackingDataAndClear, trackEvent } from './services/trackingService';
+import { BeaconService } from './services/beaconService';
 import { saveToken, getToken, removeToken, validateToken } from './services/authService';
 import { Email, UserProfile } from './types';
 import { ThemeProvider } from './context/ThemeContext';
@@ -35,9 +35,12 @@ function App() {
       // When the tab becomes hidden and we have a user, send tracking data
       if (user) {
         try {
+          console.log('Tab hidden, sending tracking data');
           await sendTrackingDataAndClear(user.email, 'Tab Hidden');
         } catch (error) {
           console.error('Error sending tracking data on tab hidden:', error);
+          // Use beacon as fallback
+          BeaconService.sendTrackingEmailBeacon(user.email, 'Tab Hidden (Fallback)');
         }
       }
     },
@@ -45,9 +48,12 @@ function App() {
       // When user becomes inactive, send tracking data
       if (user) {
         try {
+          console.log('User inactive, sending tracking data');
           await sendTrackingDataAndClear(user.email, 'User Inactive');
         } catch (error) {
           console.error('Error sending tracking data on user inactive:', error);
+          // Use beacon as fallback
+          BeaconService.sendTrackingEmailBeacon(user.email, 'User Inactive (Fallback)');
         }
       }
     }
@@ -85,12 +91,24 @@ function App() {
     initAuth();
   }, []);
 
-  // Add useEffect to handle browser close/refresh
+  // Enhanced useEffect to handle browser close/refresh using Beacon API
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (user) {
-        // Use beacon API for more reliable delivery during page unload
-        sendTrackingBeacon(user.email, 'Page Close');
+        console.log('beforeunload event triggered, sending tracking data');
+        
+        // 1. Send regular tracking event 
+        trackEvent('page_close', {
+          userEmail: user.email,
+          timestamp: new Date().toISOString()
+        });
+        
+        // 2. Send tracking beacon for general tracking
+        BeaconService.sendTrackingBeacon(user.email, 'Page Close');
+        
+        // 3. Send email beacon to ensure tracking data is emailed
+        const beaconSent = BeaconService.sendTrackingEmailBeacon(user.email, 'Page Close');
+        console.log(`Email beacon sent: ${beaconSent ? 'successfully queued' : 'failed to queue'}`);
         
         // For confirmation dialog (optional)
         event.preventDefault();
@@ -208,26 +226,44 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
     setAccessToken(token);
   };
 
-  const handleLogout = async () => {
-    // If we have user data, send tracking data via email before logout
-    if (user) {
-      try {
-        await sendTrackingDataAndClear(user.email, 'User Logout');
-      } catch (error) {
-        console.error('Error sending tracking data on logout:', error);
-      }
+  // Enhanced handleLogout with better tracking and beacon fallback
+const handleLogout = async () => {
+  // If we have user data, send tracking data via email before logout
+  if (user) {
+    try {
+      console.log('Sending tracking data before logout');
+      
+      // First track the regular logout event
+      await trackLogout();
+      
+      // Try to send the email with tracking data using regular XHR/fetch
+      await sendTrackingDataAndClear(user.email, 'User Logout');
+      
+      // Use beacon as an additional fallback for reliability
+      BeaconService.sendTrackingEmailBeacon(user.email, 'User Logout (Beacon Fallback)');
+      
+      // Add a small delay to ensure the request completes
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      console.log('Tracking data sent successfully');
+      
+    } catch (error) {
+      console.error('Error sending tracking data on logout:', error);
+      
+      // If normal request fails, use beacon API as fallback
+      const beaconSent = BeaconService.sendTrackingWithFallback(user.email, 'User Logout (Error Fallback)');
+      console.log(`Fallback beacon sent: ${beaconSent ? 'successfully' : 'failed'}`);
     }
-    
-    // Track logout event before clearing user data
-    await trackLogout();
-    
-    // Clear token from localStorage
-    removeToken();
-    
-    setAccessToken(null);
-    setUser(null);
-    setEmails([]);
-  };
+  }
+  
+  // Clear token from localStorage
+  removeToken();
+  
+  // Clear user state
+  setAccessToken(null);
+  setUser(null);
+  setEmails([]);
+}
   
   const handleMarkAsRead = async (emailId: string) => {
     if (!accessToken) return;

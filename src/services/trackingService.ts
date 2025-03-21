@@ -1,6 +1,5 @@
 import axios from 'axios';
 import { throttle, debounce } from 'lodash';
-import { sendTrackingBeacon } from './beaconService';
 
 // Base URL for the tracking API
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5175/api';
@@ -42,7 +41,7 @@ const scrollState = {
 /**
  * Generic function to track events with simplified data structure
  */
-const trackEvent = async (eventType: string, data: any = {}): Promise<void> => {
+export const trackEvent = async (eventType: string, data: any = {}): Promise<void> => {
   try {
     const url = `${API_BASE_URL}/track/${eventType}`;
     
@@ -143,9 +142,6 @@ export const sendTrackingDataAndClear = async (userEmail: string, reason: string
   // Comment this out if you want to keep accumulating data
   await clearTrackingData();
 };
-
-// Other tracking functions...
-// (Keep the rest of your original tracking functions here)
 
 /**
  * Check if an element has a specific class

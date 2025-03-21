@@ -1,0 +1,195 @@
+[
+  {
+    "type": "scroll_direction_change",
+    "timestamp": "2025-03-21T17:43:04.925Z",
+    "data": {
+      "from": 2106,
+      "to": 2105,
+      "oldDirection": "down",
+      "newDirection": "up",
+      "percentage": 43,
+      "visibleSections": [
+        "root"
+      ]
+    }
+  },
+  {
+    "type": "mouse_move",
+    "timestamp": "2025-03-21T17:43:07.318Z",
+    "data": {
+      "x": 844,
+      "y": 230,
+      "viewportWidth": 1470,
+      "viewportHeight": 798,
+      "path": "/"
+    }
+  },
+  {
+    "type": "scroll_direction_change",
+    "timestamp": "2025-03-21T17:43:07.898Z",
+    "data": {
+      "from": 2091,
+      "to": 2092,
+      "oldDirection": "up",
+      "newDirection": "down",
+      "percentage": 43,
+      "visibleSections": [
+        "root"
+      ]
+    }
+  },
+  {
+    "type": "mouse_move",
+    "timestamp": "2025-03-21T17:43:08.313Z",
+    "data": {
+      "x": 884,
+      "y": 376,
+      "viewportWidth": 1470,
+      "viewportHeight": 798,
+      "path": "/"
+    }
+  },
+  {
+    "type": "click",
+    "timestamp": "2025-03-21T17:43:08.843Z",
+    "data": {
+      "x": 994,
+      "y": 119,
+      "viewportWidth": 1470,
+      "viewportHeight": 798,
+      "path": "/",
+      "elementType": "h4",
+      "elementClasses": "font-medium text-sm text-gray-700 dark:text-gray-300 mb-1",
+      "description": "h4: font-medium text-sm text-gray-700 dark:text-gray-300 mb-1"
+    }
+  },
+  {
+    "type": "mouse_move",
+    "timestamp": "2025-03-21T17:43:09.337Z",
+    "data": {
+      "x": 605,
+      "y": 257,
+      "viewportWidth": 1470,
+      "viewportHeight": 798,
+      "path": "/"
+    }
+  },
+  {
+    "type": "mouse_move",
+    "timestamp": "2025-03-21T17:43:10.332Z",
+    "data": {
+      "x": 535,
+      "y": 189,
+      "viewportWidth": 1470,
+      "viewportHeight": 798,
+      "path": "/"
+    }
+  },
+  {
+    "type": "click",
+    "timestamp": "2025-03-21T17:43:10.922Z",
+    "data": {
+      "x": 283,
+      "y": 155,
+      "viewportWidth": 1470,
+      "viewportHeight": 798,
+      "path": "/",
+      "elementType": "div",
+      "elementClasses": "w-full bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm",
+      "description": "div: w-full bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm"
+    }
+  },
+  {
+    "type": "scroll_session",
+    "timestamp": "2025-03-21T17:43:11.183Z",
+    "data": {
+      "totalScrollDistance": 2322,
+      "reachedBottom": false,
+      "timeSpent": {
+        "top": 185,
+        "quarter": 0,
+        "half": 9,
+        "threeQuarters": 0,
+        "bottom": 0
+      },
+      "viewedSections": [
+        "root"
+      ],
+      "pattern": "reading"
+    }
+  },
+  {
+    "type": "mouse_move",
+    "timestamp": "2025-03-21T17:43:11.318Z",
+    "data": {
+      "x": 515,
+      "y": 161,
+      "viewportWidth": 1470,
+      "viewportHeight": 798,
+      "path": "/"
+    }
+  },
+  {
+    "type": "mouse_move",
+    "timestamp": "2025-03-21T17:43:12.344Z",
+    "data": {
+      "x": 1093,
+      "y": 34,
+      "viewportWidth": 1470,
+      "viewportHeight": 798,
+      "path": "/"
+    }
+  },
+  {
+    "type": "click",
+    "timestamp": "2025-03-21T17:43:12.819Z",
+    "data": {
+      "x": 1122,
+      "y": 47,
+      "viewportWidth": 1470,
+      "viewportHeight": 798,
+      "path": "/",
+      "elementType": "svg",
+      "elementClasses": "lucide lucide-chevron-up ",
+      "description": "svg: lucide lucide-chevron-up "
+    }
+  },
+  {
+    "type": "mouse_move",
+    "timestamp": "2025-03-21T17:43:13.346Z",
+    "data": {
+      "x": 955,
+      "y": 155,
+      "viewportWidth": 1470,
+      "viewportHeight": 798,
+      "path": "/"
+    }
+  },
+  {
+    "type": "scroll_milestone",
+    "timestamp": "2025-03-21T17:43:13.981Z",
+    "data": {
+      "milestone": "50%",
+      "timeToReach": 197343
+    }
+  },
+  {
+    "type": "scroll_session",
+    "timestamp": "2025-03-21T17:43:18.644Z",
+    "data": {
+      "totalScrollDistance": 3573,
+      "reachedBottom": false,
+      "timeSpent": {
+        "top": 185,
+        "quarter": 0,
+        "half": 13,
+        "threeQuarters": 4,
+        "bottom": 0
+      },
+      "viewedSections": [
+        "root"
+      ],
+      "pattern": "reading"
+    }
+  }
+]

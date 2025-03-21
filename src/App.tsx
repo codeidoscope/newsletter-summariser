@@ -2,11 +2,13 @@ import { useState, useEffect, useMemo } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { fetchEmails, fetchUserProfile, markEmailAsRead, deleteEmail } from './services/googleApi';
 import { summarizeEmail } from './services/openaiApi';
-import { trackLogin, trackLogout, initTracking } from './services/trackingService';
+import { trackLogin, trackLogout, initTracking, sendTrackingDataAndClear } from './services/trackingService';
+import { sendTrackingBeacon } from './services/beaconService.ts';
 import { saveToken, getToken, removeToken, validateToken } from './services/authService';
 import { Email, UserProfile } from './types';
 import { ThemeProvider } from './context/ThemeContext';
 import { parseEmailDate, isToday, isThisWeek } from './utils/dateUtils';
+import { useVisibility } from './hooks/useVisibility.ts';
 import Login from './components/Login';
 import Header from './components/Header';
 import EmailList from './components/EmailList';
@@ -25,6 +27,31 @@ function App() {
 
   // Check if we have an OpenAI API key
   const hasOpenAIKey = Boolean(import.meta.env.VITE_OPENAI_API_KEY);
+
+  // Use the visibility hook
+  const {} = useVisibility({
+    inactivityTimeout: 15 * 60 * 1000, // 15 minutes of inactivity
+    onBecomeHidden: async () => {
+      // When the tab becomes hidden and we have a user, send tracking data
+      if (user) {
+        try {
+          await sendTrackingDataAndClear(user.email, 'Tab Hidden');
+        } catch (error) {
+          console.error('Error sending tracking data on tab hidden:', error);
+        }
+      }
+    },
+    onUserInactive: async () => {
+      // When user becomes inactive, send tracking data
+      if (user) {
+        try {
+          await sendTrackingDataAndClear(user.email, 'User Inactive');
+        } catch (error) {
+          console.error('Error sending tracking data on user inactive:', error);
+        }
+      }
+    }
+  });
 
   useEffect(() => {
     // Initialize tracking when app loads
@@ -57,6 +84,27 @@ function App() {
 
     initAuth();
   }, []);
+
+  // Add useEffect to handle browser close/refresh
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (user) {
+        // Use beacon API for more reliable delivery during page unload
+        sendTrackingBeacon(user.email, 'Page Close');
+        
+        // For confirmation dialog (optional)
+        event.preventDefault();
+        event.returnValue = '';
+        return 'Are you sure you want to leave? Your tracking data will be sent.';
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [user]);
 
   useEffect(() => {
     // If we have an access token, fetch user profile and emails
@@ -161,6 +209,15 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
   };
 
   const handleLogout = async () => {
+    // If we have user data, send tracking data via email before logout
+    if (user) {
+      try {
+        await sendTrackingDataAndClear(user.email, 'User Logout');
+      } catch (error) {
+        console.error('Error sending tracking data on logout:', error);
+      }
+    }
+    
     // Track logout event before clearing user data
     await trackLogout();
     

@@ -46,37 +46,5 @@
     "reason": "User Logout - Sync Request",
     "messageId": "<96de07e8-bf1c-2b22-4eaa-4327ff8ea865@gmail.com>",
     "eventsCount": 19
-  },
-  {
-    "timestamp": "2025-03-23T18:26:32.146Z",
-    "success": true,
-    "userEmail": "refacturd@gmail.com",
-    "reason": "Manual Send from Header Button",
-    "messageId": "<95c77e25-f92e-ec18-2283-246f677cdac1@gmail.com>",
-    "eventsCount": 55
-  },
-  {
-    "timestamp": "2025-03-23T19:27:36.343Z",
-    "success": true,
-    "userEmail": "refacturd@gmail.com",
-    "reason": "Periodic Background Tracking",
-    "messageId": "<2241703e-a898-9485-4450-b9626b98a8cf@gmail.com>",
-    "eventsCount": 1
-  },
-  {
-    "timestamp": "2025-03-23T19:27:40.087Z",
-    "success": true,
-    "userEmail": "refacturd@gmail.com",
-    "reason": "Tab Hidden",
-    "messageId": "<79b9f907-d9a8-1374-9f50-0fd90380fe09@gmail.com>",
-    "eventsCount": 2
-  },
-  {
-    "timestamp": "2025-03-23T19:58:42.437Z",
-    "success": true,
-    "userEmail": "refacturd@gmail.com",
-    "reason": "Periodic Background Tracking",
-    "messageId": "<8654fc41-8a6b-07a7-7bdf-0a2e69a4dc22@gmail.com>",
-    "eventsCount": 7
   }
 ]

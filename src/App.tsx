@@ -13,6 +13,10 @@ import Login from './components/Login';
 import Header from './components/Header';
 import EmailList from './components/EmailList';
 import EmailFilter, { FilterOption } from './components/EmailFilter';
+import TrackingTester from './components/TrackingTester';
+
+// Get the recipient filter from environment variables
+const RECIPIENT_FILTER = import.meta.env.VITE_RECIPIENT_FILTER || null;
 
 // Get the recipient filter from environment variables
 const RECIPIENT_FILTER = import.meta.env.VITE_RECIPIENT_FILTER || null;
@@ -37,6 +41,7 @@ function App() {
           await sendTrackingDataAndClear(user.email, 'Tab Hidden');
         } catch (error) {
           console.error('Error sending tracking data on tab hidden:', error);
+
           BeaconService.sendTrackingEmailBeacon(user.email, 'Tab Hidden (Fallback)');
         }
       }
@@ -53,7 +58,7 @@ function App() {
       }
     }
   });
-
+  
   useEffect(() => {
     initTracking();
     
@@ -82,6 +87,41 @@ function App() {
 
     initAuth();
   }, []);
+
+  // Enhanced useEffect to handle browser close/refresh using Beacon API
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (user) {
+        console.log('beforeunload event triggered, sending tracking data');
+        
+        // Use Beacon API directly for all tracking - most reliable for page close
+        const beaconSent = BeaconService.sendTrackingEmailBeacon(user.email, 'Page Close');
+        console.log(`Email beacon sent: ${beaconSent ? 'successfully queued' : 'failed to queue'}`);
+        
+        // Send a regular tracking beacon as well
+        BeaconService.sendTrackingBeacon(user.email, 'Page Close');
+        
+        // For confirmation dialog (optional)
+        event.preventDefault();
+        event.returnValue = '';
+        return 'Are you sure you want to leave? Your tracking data will be sent.';
+      }
+    };
+    
+    // Use both beforeunload and unload for maximum reliability
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('unload', () => {
+      if (user) {
+        // Last ditch effort on unload - use only beacon here
+        BeaconService.sendTrackingEmailBeacon(user.email, 'Page Unload');
+      }
+    });
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('unload', () => {});
+    };
+  }, [user]);
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {

@@ -265,10 +265,11 @@ app.post('/api/track/:eventType', async (req, res) => {
     console.log(`Received ${eventType} tracking event`);
     
     const trackingData = await readTrackingData();
-    
     trackingData.push({
       type: eventType,
       timestamp: new Date().toISOString(),
+      userAgent: req.headers['user-agent'],
+      ip: req.ip || req.connection.remoteAddress,
       data: data || {}
     });
     

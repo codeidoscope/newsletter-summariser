@@ -9,7 +9,26 @@
  */
 
 // Base URL for API requests
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5175/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5175';
+
+/**
+ * Constructs a proper API URL based on the base URL
+ * @param endpoint The API endpoint
+ * @returns A properly formatted URL
+ */
+const buildApiUrl = (endpoint: string): string => {
+  // Remove trailing slash from base URL if present
+  const baseUrl = API_BASE_URL.endsWith('/')
+    ? API_BASE_URL.slice(0, -1)
+    : API_BASE_URL;
+  
+  // Check if baseUrl already ends with /api
+  if (baseUrl.endsWith('/api')) {
+    return `${baseUrl}/${endpoint}`;
+  } else {
+    return `${baseUrl}/api/${endpoint}`;
+  }
+};
 
 /**
  * Uses the Navigator.sendBeacon API to send data on page unload.
@@ -28,7 +47,7 @@ export const sendBeacon = (endpoint: string, data: any): boolean => {
   
   try {
     // Construct the URL correctly
-    const url = `${API_BASE_URL}/api/${endpoint}`.replace('/api/api/', '/api/');
+    const url = buildApiUrl(endpoint);
     
     console.log(`Sending beacon to URL: ${url}`);
     
@@ -108,7 +127,7 @@ export const sendTrackingEmailBeacon = (userEmail: string, reason: string): bool
   console.log(`Attempting to send tracking email beacon for ${userEmail}`);
   
   // Create the URL correctly
-  const url = `${API_BASE_URL}/send-tracking-data`.replace('/api/api/', '/api/');
+  const url = buildApiUrl('send-tracking-data');
   
   // Format the data
   const data = { 

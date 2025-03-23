@@ -2,6 +2,26 @@ import React, { useState } from 'react';
 import { BeaconService } from '../services/beaconService';
 import { sendTrackingDataAndClear, trackEvent } from '../services/trackingService';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5175'
+
+// Helper function to build correct API URL
+const buildApiUrl = (endpoint: string): string => {
+  // Get base URL from environment variable or use default
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5175';
+  
+  // Remove trailing slash from base URL if present
+  const baseUrl = API_BASE_URL.endsWith('/') 
+    ? API_BASE_URL.slice(0, -1) 
+    : API_BASE_URL;
+  
+  // Check if baseUrl already ends with /api
+  if (baseUrl.endsWith('/api')) {
+    return `${baseUrl}/${endpoint}`;
+  } else {
+    return `${baseUrl}/api/${endpoint}`;
+  }
+};
+
 interface TrackingTesterProps {
   userEmail: string;
   className?: string;
@@ -25,9 +45,8 @@ const TrackingTester: React.FC<TrackingTesterProps> = ({ userEmail, className = 
       } else if (method === 'beacon') {
         result = BeaconService.sendTrackingEmailBeacon(userEmail, 'Manual Beacon Test from UI');
       } else if (method === 'fetch-keepalive') {
-        // Test fetch with keepalive
-        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5175/api';
-        const url = `${API_BASE_URL}/send-tracking-data`.replace('/api/api/', '/api/');
+        // Test fetch with keepalive using correct URL construction
+        const url = buildApiUrl('send-tracking-data');
         
         const fetchPromise = fetch(url, {
           method: 'POST',
@@ -58,6 +77,10 @@ const TrackingTester: React.FC<TrackingTesterProps> = ({ userEmail, className = 
       setIsLoading(false);
     }
   };
+  
+  const apiBaseUrl = API_BASE_URL.endsWith('/api') 
+  ? API_BASE_URL 
+  : `${API_BASE_URL}/api`;
   
   return (
     <div className={`p-4 bg-gray-100 dark:bg-gray-800 rounded-lg ${className}`}>
@@ -115,7 +138,7 @@ const TrackingTester: React.FC<TrackingTesterProps> = ({ userEmail, className = 
       
       <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
         Email: {userEmail}<br/>
-        API URL: {import.meta.env.VITE_API_BASE_URL || 'http://localhost:5175/api'}
+        API URL: {apiBaseUrl}
       </p>
     </div>
   );

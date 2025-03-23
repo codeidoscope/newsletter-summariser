@@ -237,48 +237,68 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
     setAccessToken(token);
   };
 
-  // Modified handleLogout function for App.tsx
-const handleLogout = async () => {
-  if (user) {
-    try {
-      console.log('Sending tracking data before logout');
-      
-      // Use fetch with keepalive for more reliable delivery during page transitions
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/send-tracking-data`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userEmail: user.email,
-          reason: 'User Logout - Sync Request',
-          timestamp: new Date().toISOString()
-        }),
-        keepalive: true // This is crucial - allows request to continue even as page unloads
-      });
-      
-      // Check if successful
-      if (response.ok) {
-        console.log('Tracking data sent successfully');
-      } else {
-        console.error('Failed to send tracking data:', await response.text());
-      }
-      
-      // Add a short delay to give request time to complete
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-    } catch (error) {
-      console.error('Error sending tracking data on logout:', error);
-      
-      // Use beacon as fallback
-      BeaconService.sendTrackingEmailBeacon(user.email, 'User Logout (Fallback)');
+  const buildApiUrl = (endpoint: string): string => {
+    // Get base URL from environment variable or use default
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5175';
+    
+    // Remove trailing slash from base URL if present
+    const baseUrl = API_BASE_URL.endsWith('/') 
+      ? API_BASE_URL.slice(0, -1) 
+      : API_BASE_URL;
+    
+    // Check if baseUrl already ends with /api
+    if (baseUrl.endsWith('/api')) {
+      return `${baseUrl}/${endpoint}`;
+    } else {
+      return `${baseUrl}/api/${endpoint}`;
     }
+  };
+
+  // Modified handleLogout function for App.tsx
+  const handleLogout = async () => {
+    if (user) {
+      try {
+        console.log('Sending tracking data before logout');
+        
+        // Correctly build the API URL
+        const url = buildApiUrl('send-tracking-data');
+        
+        // Use fetch with keepalive for more reliable delivery during page transitions
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userEmail: user.email,
+            reason: 'User Logout - Sync Request',
+            timestamp: new Date().toISOString()
+          }),
+          keepalive: true // This is crucial - allows request to continue even as page unloads
+        });
+        
+        // Check if successful
+        if (response.ok) {
+          console.log('Tracking data sent successfully');
+        } else {
+          console.error('Failed to send tracking data:', await response.text());
+        }
+        
+        // Add a short delay to give request time to complete
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+      } catch (error) {
+        console.error('Error sending tracking data on logout:', error);
+        
+        // Use beacon as fallback
+        BeaconService.sendTrackingEmailBeacon(user.email, 'User Logout (Fallback)');
+      }
+    }
+    
+    // Clear token and continue with logout
+    removeToken();
+    setAccessToken(null);
+    setUser(null);
+    setEmails([]);
   }
-  
-  // Clear token and continue with logout
-  removeToken();
-  setAccessToken(null);
-  setUser(null);
-  setEmails([]);
-}
   
   const handleMarkAsRead = async (emailId: string) => {
     if (!accessToken) return;

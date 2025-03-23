@@ -2,7 +2,26 @@ import axios from 'axios';
 import { throttle, debounce } from 'lodash';
 
 // Base URL for the tracking API
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5175/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5175';
+
+/**
+ * Constructs a proper API URL based on the base URL
+ * @param endpoint The API endpoint
+ * @returns A properly formatted URL
+ */
+const buildApiUrl = (endpoint: string): string => {
+  // Remove trailing slash from base URL if present
+  const baseUrl = API_BASE_URL.endsWith('/') 
+    ? API_BASE_URL.slice(0, -1) 
+    : API_BASE_URL;
+  
+  // Check if baseUrl already ends with /api
+  if (baseUrl.endsWith('/api')) {
+    return `${baseUrl}/${endpoint}`;
+  } else {
+    return `${baseUrl}/api/${endpoint}`;
+  }
+};
 
 // Define a type for scroll depth sections
 type ScrollDepthSection = 'top' | 'quarter' | 'half' | 'threequarters' | 'bottom';
@@ -43,7 +62,7 @@ const scrollState = {
  */
 export const trackEvent = async (eventType: string, data: any = {}): Promise<void> => {
   try {
-    const url = `${API_BASE_URL}/track/${eventType}`;
+    const url = buildApiUrl(`track/${eventType}`);
     
     // Make sure data is serializable
     const cleanData = JSON.parse(JSON.stringify(data));
@@ -100,7 +119,7 @@ export const trackTabVisible = async (): Promise<void> => {
  */
 export const sendTrackingDataEmail = async (userEmail: string, reason: string): Promise<void> => {
   try {
-    const url = `${API_BASE_URL}/send-tracking-data`;
+    const url = buildApiUrl('send-tracking-data');
     
     await axios.post(url, {
       userEmail,
@@ -120,7 +139,7 @@ export const sendTrackingDataEmail = async (userEmail: string, reason: string): 
  */
 export const clearTrackingData = async (): Promise<void> => {
   try {
-    const url = `${API_BASE_URL}/clear-tracking-data`;
+    const url = buildApiUrl('clear-tracking-data');
     
     await axios.post(url, {});
     

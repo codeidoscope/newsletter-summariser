@@ -59,17 +59,25 @@ transporter.verify(function(error, success) {
 // CORS configuration with improved handling for Beacon API
 const corsOptions = {
   origin: function(origin, callback) {
-    // Allow all origins during development or when origin is null (like in Beacon requests)
+    // For Beacon API and development, allow all origins
     if (!origin || process.env.NODE_ENV === 'development') {
       callback(null, true);
+      return;
+    }
+    
+    // Allow both Vite dev server ports (5173 and 5175)
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+      'http://localhost:5175',
+      'http://127.0.0.1:5175'
+    ];
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
     } else {
-      const allowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.warn(`CORS blocked request from origin: ${origin}`);
-        callback(new Error('Not allowed by CORS'));
-      }
+      console.warn(`CORS blocked request from origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
@@ -323,6 +331,29 @@ app.post('/api/track/:eventType', async (req, res) => {
 
 // Helper function to process email sending (used by both normal and beacon paths)
 async function processEmailSending(userEmail, reason) {
+
+    // ADD THIS DEBUG SECTION AT THE BEGINNING
+    console.log('================== EMAIL CONFIG CHECK ==================');
+    console.log('EMAIL_USER:', process.env.EMAIL_USER || 'Not configured');
+    console.log('EMAIL_PASS:', process.env.EMAIL_PASS ? 'Is configured' : 'Not configured');
+    console.log('EMAIL_RECIPIENT:', process.env.EMAIL_RECIPIENT || 'Not configured');
+    
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS || !process.env.EMAIL_RECIPIENT) {
+      console.error('EMAIL CONFIGURATION ERROR: Missing required email settings');
+      return { 
+        success: false, 
+        message: 'Email configuration is incomplete. Check server logs for details.' 
+      };
+    }
+    
+    // Temporary test logging
+    try {
+      console.log('================== PROCESS EMAIL SENDING STARTED ==================');
+      console.log(`User: ${userEmail}, Reason: ${reason}`);
+      console.log(`Timestamp: ${new Date().toISOString()}`);
+    } catch (e) {
+      console.error('Error in test logging:', e);
+    }
   // Temporary test logging
   try {
     console.log('================== PROCESS EMAIL SENDING STARTED ==================');
@@ -493,8 +524,21 @@ async function processEmailSending(userEmail, reason) {
 // Improved email sending endpoint with beacon support
 app.post('/api/send-tracking-data', async (req, res) => {
   try {
+    console.log('Request received at /api/send-tracking-data');
+    console.log('Request body:', req.body);
+    
+    // Check if we have the required fields
     const { userEmail, reason } = req.body;
-    console.log(`Received request to send tracking data for ${userEmail} with reason: ${reason}`);
+    
+    if (!userEmail) {
+      console.error('Missing userEmail in request body');
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        details: 'userEmail is required'
+      });
+    }
+    
+    console.log(`Received request to send tracking data for ${userEmail} with reason: ${reason || 'No reason provided'}`);
     console.log(`Is beacon request: ${req.isBeaconEmail ? 'Yes' : 'No'}`);
     
     // For beacon requests, respond immediately to avoid browser timeout
@@ -502,13 +546,21 @@ app.post('/api/send-tracking-data', async (req, res) => {
       res.status(202).send(); // Accepted status, tells browser the request was received
       
       // Then process the email sending asynchronously
-      processEmailSending(userEmail, reason).catch(err => {
-        console.error('Background email sending failed:', err);
-      });
+      processEmailSending(userEmail, reason || 'Beacon Request')
+        .then(result => {
+          console.log('Background email processing completed successfully:', result);
+        })
+        .catch(err => {
+          console.error('Background email sending failed:', err);
+          console.error('Error details:', err.stack);
+        });
     } else {
       // For regular requests, process normally
       try {
-        const result = await processEmailSending(userEmail, reason);
+        console.log('Processing email synchronously...');
+        const result = await processEmailSending(userEmail, reason || 'Manual Request');
+        console.log('Email processing result:', result);
+        
         res.status(200).json({ 
           success: true, 
           message: 'Tracking data sent via email',
@@ -516,6 +568,14 @@ app.post('/api/send-tracking-data', async (req, res) => {
         });
       } catch (error) {
         console.error('Failed to send email:', error);
+        console.error('Error stack:', error.stack);
+        
+        // Check email configuration
+        console.log('Email configuration check:');
+        console.log('- EMAIL_USER:', process.env.EMAIL_USER || 'Not set');
+        console.log('- EMAIL_PASS:', process.env.EMAIL_PASS ? 'Is set' : 'Not set');
+        console.log('- EMAIL_RECIPIENT:', process.env.EMAIL_RECIPIENT || 'Not set');
+        
         res.status(500).json({
           error: 'Failed to send tracking data email',
           details: error.message
@@ -524,6 +584,8 @@ app.post('/api/send-tracking-data', async (req, res) => {
     }
   } catch (error) {
     console.error('Error in send-tracking-data endpoint:', error);
+    console.error('Error stack:', error.stack);
+    
     // Only send error response if it's not a beacon request (which already received a response)
     if (!req.isBeaconEmail) {
       res.status(500).json({ 
@@ -599,6 +661,28 @@ app.get('/api/email-logs', async (req, res) => {
       details: error.message
     });
   }
+});
+
+app.get('/api/test-email-settings', (req, res) => {
+  const emailSettings = {
+    configured: !!(process.env.EMAIL_USER && process.env.EMAIL_PASS && process.env.EMAIL_RECIPIENT),
+    emailUser: process.env.EMAIL_USER || 'Not configured',
+    emailRecipient: process.env.EMAIL_RECIPIENT || 'Not configured',
+    emailPassConfigured: !!process.env.EMAIL_PASS,
+    environment: process.env.NODE_ENV || 'development',
+    serverTime: new Date().toISOString()
+  };
+  
+  console.log('Email settings check:', emailSettings);
+  
+  res.status(200).json({
+    success: true,
+    emailSettings: {
+      ...emailSettings,
+      // Don't return the actual email password, even if it's masked
+      emailPass: emailSettings.emailPassConfigured ? '[CONFIGURED]' : 'Not configured'
+    }
+  });
 });
 
 // Test endpoint to send a simple email

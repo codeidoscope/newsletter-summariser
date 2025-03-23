@@ -2,19 +2,17 @@ import { useState, useEffect, useMemo } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { fetchEmails, fetchUserProfile, markEmailAsRead, deleteEmail } from './services/googleApi';
 import { summarizeEmail } from './services/openaiApi';
-import { trackLogin, trackLogout, initTracking, sendTrackingDataAndClear, trackEvent } from './services/trackingService';
+import { trackLogin, initTracking, sendTrackingDataAndClear } from './services/trackingService';
 import { BeaconService } from './services/beaconService';
 import { saveToken, getToken, removeToken, validateToken } from './services/authService';
 import { Email, UserProfile } from './types';
 import { ThemeProvider } from './context/ThemeContext';
 import { parseEmailDate, isToday, isThisWeek } from './utils/dateUtils';
 import { useVisibility } from './hooks/useVisibility.ts';
-import { useReliableTracking } from './hooks/useReliableTracking';
 import Login from './components/Login';
 import Header from './components/Header';
 import EmailList from './components/EmailList';
 import EmailFilter, { FilterOption } from './components/EmailFilter';
-import TrackingTester from './components/TrackingTester';
 
 // Get the recipient filter from environment variables
 const RECIPIENT_FILTER = import.meta.env.VITE_RECIPIENT_FILTER || null;
@@ -27,10 +25,8 @@ function App() {
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
   const [activeFilter, setActiveFilter] = useState<FilterOption>('all');
 
-  // Check if we have an OpenAI API key
   const hasOpenAIKey = Boolean(import.meta.env.VITE_OPENAI_API_KEY);
 
-  // Use the visibility hook
   const {} = useVisibility({
     inactivityTimeout: 15 * 60 * 1000, // 15 minutes of inactivity
     onBecomeHidden: async () => {
@@ -41,35 +37,24 @@ function App() {
           await sendTrackingDataAndClear(user.email, 'Tab Hidden');
         } catch (error) {
           console.error('Error sending tracking data on tab hidden:', error);
-          // Use beacon as fallback
           BeaconService.sendTrackingEmailBeacon(user.email, 'Tab Hidden (Fallback)');
         }
       }
     },
     onUserInactive: async () => {
-      // When user becomes inactive, send tracking data
       if (user) {
         try {
           console.log('User inactive, sending tracking data');
           await sendTrackingDataAndClear(user.email, 'User Inactive');
         } catch (error) {
           console.error('Error sending tracking data on user inactive:', error);
-          // Use beacon as fallback
           BeaconService.sendTrackingEmailBeacon(user.email, 'User Inactive (Fallback)');
         }
       }
     }
   });
 
-  // Add the reliable tracking hook
-  const { sendTrackingNow } = useReliableTracking({
-    userEmail: user?.email || null,
-    isActive: Boolean(user), // Only active when user is logged in
-    trackingInterval: 10 * 60 * 1000 // Send tracking every 10 minutes
-  });
-
   useEffect(() => {
-    // Initialize tracking when app loads
     initTracking();
     
     // Check for existing token in localStorage on app init
@@ -79,13 +64,11 @@ function App() {
 
       if (savedToken) {
         try {
-          // Validate the token first
           const isValid = await validateToken(savedToken);
           
           if (isValid) {
             setAccessToken(savedToken);
           } else {
-            // Token is invalid, remove it
             removeToken();
           }
         } catch (error) {
@@ -100,12 +83,9 @@ function App() {
     initAuth();
   }, []);
 
-  // Enhanced useEffect to handle browser close/refresh using Beacon API
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (user) {
-        console.log('beforeunload event triggered, sending tracking data');
-        
         // Use Beacon API directly for all tracking - most reliable for page close
         const beaconSent = BeaconService.sendTrackingEmailBeacon(user.email, 'Page Close');
         console.log(`Email beacon sent: ${beaconSent ? 'successfully queued' : 'failed to queue'}`);
@@ -113,9 +93,7 @@ function App() {
         // Send a regular tracking beacon as well
         BeaconService.sendTrackingBeacon(user.email, 'Page Close');
         
-        // For confirmation dialog (optional)
         event.preventDefault();
-        event.returnValue = '';
         return 'Are you sure you want to leave? Your tracking data will be sent.';
       }
     };
@@ -124,7 +102,6 @@ function App() {
     window.addEventListener('beforeunload', handleBeforeUnload);
     window.addEventListener('unload', () => {
       if (user) {
-        // Last ditch effort on unload - use only beacon here
         BeaconService.sendTrackingEmailBeacon(user.email, 'Page Unload');
       }
     });
@@ -136,17 +113,14 @@ function App() {
   }, [user]);
 
   useEffect(() => {
-    // If we have an access token, fetch user profile and emails
     if (accessToken) {
       const loadUserData = async () => {
         try {
           const userProfile = await fetchUserProfile(accessToken);
           setUser(userProfile);
           
-          // Save token to localStorage for persistence
           saveToken(accessToken);
 
-          // Track user login
           await trackLogin();
           
           await loadEmails();
@@ -170,7 +144,6 @@ function App() {
       const fetchedEmails = await fetchEmails(accessToken, maxResults, RECIPIENT_FILTER);
       setEmails(fetchedEmails);
       
-      // Process emails for summaries if we have an OpenAI API key
       if (hasOpenAIKey) {
         processEmailsForSummaries(fetchedEmails);
       }
@@ -181,7 +154,6 @@ function App() {
     }
   };
 
-  // Handle filter changes
   const handleFilterChange = (filter: FilterOption) => {
     setActiveFilter(filter);
 
@@ -211,8 +183,8 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
             ? { 
                 ...prevEmail, 
                 summary, 
-                newsletterType: newsletterType || undefined, // Convert null to undefined
-                unsubscribeLink: unsubscribeLink || undefined, // Convert null to undefined
+                newsletterType: newsletterType || undefined,
+                unsubscribeLink: unsubscribeLink || undefined,
                 isLoading: false 
               } 
             : prevEmail
@@ -275,7 +247,6 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
           keepalive: true // This is crucial - allows request to continue even as page unloads
         });
         
-        // Check if successful
         if (response.ok) {
           console.log('Tracking data sent successfully');
         } else {
@@ -287,8 +258,6 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
         
       } catch (error) {
         console.error('Error sending tracking data on logout:', error);
-        
-        // Use beacon as fallback
         BeaconService.sendTrackingEmailBeacon(user.email, 'User Logout (Fallback)');
       }
     }
@@ -368,14 +337,12 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
     }
   };
 
-  // Apply filters to emails
   const filteredEmails = useMemo(() => {
     if (activeFilter === 'all') {
       return emails;
     }
 
     return emails.filter(email => {
-      // Parse the email date
       const emailDate = parseEmailDate(email.date);
 
       switch (activeFilter) {
@@ -452,13 +419,6 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
                       <p className="text-blue-500 text-xs dark:text-blue-300">
                         <strong>Showing emails sent to:</strong> <code className="bg-blue-50 dark:bg-blue-900/30 px-1 rounded">{RECIPIENT_FILTER}</code>
                       </p>
-                    </div>
-                  )}
-                  
-                  {/* Only show in development mode */}
-                  {import.meta.env.DEV && user && (
-                    <div className="max-w-4xl mx-auto mt-8">
-                      <TrackingTester userEmail={user.email} />
                     </div>
                   )}
                 </div>

@@ -6,6 +6,7 @@ node_modules/
 
 # Tracking data
 tracking_data.json
+tracking_data*
 
 # Logs
 logs

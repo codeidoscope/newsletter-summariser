@@ -7,6 +7,7 @@ node_modules/
 # Tracking data
 tracking_data.json
 tracking_data*
+email_logs.json
 
 # Logs
 logs

@@ -13,10 +13,6 @@ import Login from './components/Login';
 import Header from './components/Header';
 import EmailList from './components/EmailList';
 import EmailFilter, { FilterOption } from './components/EmailFilter';
-import TrackingTester from './components/TrackingTester';
-
-// Get the recipient filter from environment variables
-const RECIPIENT_FILTER = import.meta.env.VITE_RECIPIENT_FILTER || null;
 
 // Get the recipient filter from environment variables
 const RECIPIENT_FILTER = import.meta.env.VITE_RECIPIENT_FILTER || null;

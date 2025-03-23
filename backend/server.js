@@ -268,8 +268,6 @@ app.post('/api/track/:eventType', async (req, res) => {
     trackingData.push({
       type: eventType,
       timestamp: new Date().toISOString(),
-      userAgent: req.headers['user-agent'],
-      ip: req.ip || req.connection.remoteAddress,
       data: data || {}
     });
     
@@ -335,7 +333,7 @@ async function processEmailSending(userEmail, reason) {
     const htmlContent = `
       <h2>Tracking Data Report</h2>
       <p><strong>Reason:</strong> ${reason || 'User Action'}</p>
-      <p><strong>User:</strong> ${userEmail || 'Unknown'}</p>
+      <p><strong>User:</strong> ${process.env.EMAIL_USER}</p>
       <p><strong>Date:</strong> ${new Date().toISOString()}</p>
       <p><strong>Total Events:</strong> ${eventsCount}</p>
       

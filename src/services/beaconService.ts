@@ -30,14 +30,6 @@ const buildApiUrl = (endpoint: string): string => {
   }
 };
 
-/**
- * Uses the Navigator.sendBeacon API to send data on page unload.
- * This method is designed to reliably send data even when the page is closing.
- * 
- * @param endpoint The API endpoint to send data to
- * @param data The data to send
- * @returns boolean True if the beacon was successfully queued, false otherwise
- */
 export const sendBeacon = (endpoint: string, data: any): boolean => {
   // Check if sendBeacon is supported in this browser
   if (!navigator.sendBeacon) {
@@ -107,8 +99,6 @@ export const sendTrackingBeacon = (userEmail: string, reason: string): boolean =
     userEmail, 
     reason,
     timestamp: new Date().toISOString(),
-    path: window.location.pathname,
-    userAgent: navigator.userAgent,
     viewport: {
       width: window.innerWidth,
       height: window.innerHeight

@@ -158,23 +158,19 @@ export const clearTrackingData = async (): Promise<void> => {
 export const sendTrackingDataAndClear = async (userEmail: string, reason: string): Promise<void> => {
   await sendTrackingDataEmail(userEmail, reason);
   
-  // Optionally clear tracking data after sending
   // Comment this out if you want to keep accumulating data
-  await clearTrackingData();
+  // await clearTrackingData();
 };
 
 /**
  * Check if an element has a specific class
  */
 const hasClass = (element: HTMLElement, className: string): boolean => {
-  // Handle SVG elements and other cases where className is not a string
   if (typeof element.className === 'string') {
     return element.className.split(' ').includes(className);
   } else if (element.classList && element.classList.contains) {
-    // Use classList if available (most modern browsers)
     return element.classList.contains(className);
   } else {
-    // Fallback for other cases
     return false;
   }
 };
@@ -244,7 +240,6 @@ const getElementDescription = (element: HTMLElement): string => {
   if (hasClass(element, 'logout')) return 'logout button';
   if (hasClass(element, 'login')) return 'login button';
   
-  // If all else fails, return the element type and a class if available
   let className = '';
   if (typeof element.className === 'string') {
     className = element.className;
@@ -259,11 +254,9 @@ const getElementDescription = (element: HTMLElement): string => {
  * Check if element is an email item in the list
  */
 const isEmailItem = (element: HTMLElement): boolean => {
-  // Check if the element or its parent is an email item
   const item = element.closest('.border.rounded-lg');
   if (!item) return false;
   
-  // Verify it has subject and from information (email item specific)
   return !!item.querySelector('.font-medium.text-lg') && 
          !!item.querySelector('.text-sm.text-gray-600');
 };
@@ -272,11 +265,9 @@ const isEmailItem = (element: HTMLElement): boolean => {
  * Determine if an email item is expanded or collapsed
  */
 const isElementExpanded = (element: HTMLElement): boolean => {
-  // Find the closest email item container
   const item = element.closest('.border.rounded-lg');
   if (!item) return false;
   
-  // Look for expanded content or an up chevron icon
   return !!item.querySelector('.px-4.pb-4') || !!item.querySelector('[data-lucide="chevron-up"]');
 };
 
@@ -304,7 +295,6 @@ const trackClick = async (e: MouseEvent): Promise<void> => {
   const { clientX, clientY } = e;
   const targetElement = e.target as HTMLElement;
   
-  // Get detailed description of what was clicked
   const elementDescription = getElementDescription(targetElement);
   
   await trackEvent('click', {
@@ -312,7 +302,6 @@ const trackClick = async (e: MouseEvent): Promise<void> => {
     y: clientY,
     viewportWidth: window.innerWidth,
     viewportHeight: window.innerHeight,
-    path: window.location.pathname,
     elementType: targetElement.tagName.toLowerCase(),
     elementClasses: typeof targetElement.className === 'string' ? 
       targetElement.className : 
@@ -332,7 +321,6 @@ const trackMouseMove = throttle(async (e: MouseEvent): Promise<void> => {
     y: clientY,
     viewportWidth: window.innerWidth,
     viewportHeight: window.innerHeight,
-    path: window.location.pathname
   });
 }, 1000); // Only track once per second to avoid too much data
 
@@ -347,7 +335,6 @@ const trackFocus = async (e: FocusEvent): Promise<void> => {
     elementClasses: typeof targetElement.className === 'string' ? 
       targetElement.className : 
       (targetElement.classList ? targetElement.classList.value : ''),
-    path: window.location.pathname
   });
 };
 
@@ -356,7 +343,7 @@ const trackFocus = async (e: FocusEvent): Promise<void> => {
  */
 const trackCopy = async (): Promise<void> => {
   await trackEvent('copy', {
-    path: window.location.pathname
+    event: "copy text"
   });
 };
 
@@ -365,7 +352,7 @@ const trackCopy = async (): Promise<void> => {
  */
 const trackPaste = async (): Promise<void> => {
   await trackEvent('paste', {
-    path: window.location.pathname
+    event: "paste text"
   });
 };
 
@@ -412,7 +399,6 @@ const updateCurrentDepth = (scrollPercent: number): void => {
  * Identifies important elements that are currently visible in the viewport
  */
 const checkVisibleElements = (): void => {
-  // Find elements with ID or data-section attribute
   const trackableElements = document.querySelectorAll('[id], [data-section]');
   
   trackableElements.forEach(element => {
@@ -491,10 +477,8 @@ const trackScroll = throttle((): void => {
     trackEvent('scroll_milestone', { milestone: '100%', timeToReach: Date.now() - scrollState.startTime });
   }
   
-  // Update current depth section
   updateCurrentDepth(scrollPercentage);
   
-  // Check for visible elements
   checkVisibleElements();
   
   // Only send detailed scroll data periodically or on direction change
@@ -548,7 +532,6 @@ const trackScrollEnd = debounce((): void => {
  * Initializes all tracking for the current session
  */
 export const initTracking = (): void => {
-  // Track visibility changes
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
       trackTabHidden();
@@ -557,26 +540,17 @@ export const initTracking = (): void => {
     }
   });
 
-  // Track when the user is about to leave the page
   window.addEventListener('beforeunload', () => {
-    // Final scroll session tracking before page unload
     trackScrollEnd.flush();
     
     trackEvent('page_close', {
-      path: window.location.pathname
+      event: "close page"
     });
   });
   
-  // Track clicks for heatmap
   document.addEventListener('click', trackClick);
-  
-  // Track mouse movement
   document.addEventListener('mousemove', trackMouseMove);
-  
-  // Track focus events
   document.addEventListener('focus', trackFocus, true);
-  
-  // Track copy/paste events
   document.addEventListener('copy', trackCopy);
   document.addEventListener('paste', trackPaste);
   
@@ -591,7 +565,6 @@ export const initTracking = (): void => {
   
   // Track when the page loads
   trackEvent('page_load', {
-    path: window.location.pathname,
     referrer: document.referrer || '',
     viewportWidth: window.innerWidth,
     viewportHeight: window.innerHeight

@@ -1,0 +1,7 @@
+{
+    "ignore": [
+      "tracking_data.json",
+      "email_logs.json",
+      "*.backup*"
+    ]
+  }

@@ -14,5 +14,37 @@
     "reason": "Debug Tool Beacon Test",
     "messageId": "<76cd7a53-d38d-2c40-7db7-b73cacb08781@gmail.com>",
     "eventsCount": 2
+  },
+  {
+    "timestamp": "2025-03-23T17:54:45.118Z",
+    "success": true,
+    "userEmail": "refacturd@gmail.com",
+    "reason": "Periodic Background Tracking",
+    "messageId": "<4675620b-7dbe-e345-8de1-a3a42c670e00@gmail.com>",
+    "eventsCount": 4
+  },
+  {
+    "timestamp": "2025-03-23T17:57:18.247Z",
+    "success": true,
+    "userEmail": "refacturd@gmail.com",
+    "reason": "Manual Send from Header Button",
+    "messageId": "<9c4440ec-ba45-398a-d907-6157c38bb57a@gmail.com>",
+    "eventsCount": 23
+  },
+  {
+    "timestamp": "2025-03-23T18:00:58.224Z",
+    "success": true,
+    "userEmail": "refacturd@gmail.com",
+    "reason": "Tab Hidden",
+    "messageId": "<6c31b915-251a-eb9a-0713-902a6df2ad74@gmail.com>",
+    "eventsCount": 6
+  },
+  {
+    "timestamp": "2025-03-23T18:01:22.405Z",
+    "success": true,
+    "userEmail": "refacturd@gmail.com",
+    "reason": "User Logout - Sync Request",
+    "messageId": "<96de07e8-bf1c-2b22-4eaa-4327ff8ea865@gmail.com>",
+    "eventsCount": 19
   }
 ]

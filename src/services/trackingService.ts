@@ -120,6 +120,7 @@ export const trackTabVisible = async (): Promise<void> => {
 export const sendTrackingDataEmail = async (userEmail: string, reason: string): Promise<void> => {
   try {
     const url = buildApiUrl('send-tracking-data');
+    console.log("URL: ", url)
     
     await axios.post(url, {
       userEmail,

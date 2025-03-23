@@ -58,28 +58,7 @@ transporter.verify(function(error, success) {
 
 // CORS configuration with improved handling for Beacon API
 const corsOptions = {
-  origin: function(origin, callback) {
-    // For Beacon API and development, allow all origins
-    if (!origin || process.env.NODE_ENV === 'development') {
-      callback(null, true);
-      return;
-    }
-    
-    // Allow both Vite dev server ports (5173 and 5175)
-    const allowedOrigins = [
-      'http://localhost:5173',
-      'http://127.0.0.1:5173',
-      'http://localhost:5175',
-      'http://127.0.0.1:5175'
-    ];
-    
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.warn(`CORS blocked request from origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: '*', // During debugging, allow all origins
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
@@ -97,68 +76,55 @@ app.use((req, res, next) => {
   next();
 });
 
-// Improved middleware for Beacon API - FIXED VERSION
+// IMPORTANT: Apply JSON middleware first to parse standard JSON requests
+app.use(express.json());
+
+// Then add Beacon API middleware to handle special beacon requests
 app.use((req, res, next) => {
-  // The Beacon API can send data with different content types
-  if (req.method === 'POST') {
-    // Check for signs this is a beacon request
-    const isBeacon = 
-      (req.headers['sec-fetch-mode'] === 'no-cors') || 
-      (req.headers['content-type'] && req.headers['content-type'].includes('application/json')) ||
-      ((req.get('User-Agent') || '').includes('Mozilla') && req.get('Origin') === null);
+  // Only apply special handling for POST requests to specific endpoints
+  if (req.method === 'POST' && 
+     (req.url === '/api/send-tracking-data' || req.url.endsWith('/send-tracking-data'))) {
     
-    if (isBeacon) {
-      console.log('Detected potential beacon request:', req.url);
-      
-      // Important: Mark the request as already consumed to prevent the json middleware from trying to read it again
-      req._body = true;
-      
-      // Collect the raw body data
-      let data = '';
-      req.on('data', chunk => {
-        data += chunk.toString();
-      });
-      
-      req.on('end', () => {
-        try {
-          // Parse the data if possible
-          if (data) {
-            console.log('Received beacon data size:', data.length);
-            try {
-              req.body = JSON.parse(data);
-              console.log('Parsed beacon data:', req.body);
-            } catch (parseError) {
-              console.error('Error parsing beacon JSON data:', parseError);
-              req.body = {};
-            }
-          } else {
+    console.log('Detected potential tracking request:', req.url);
+    console.log('Content-Type:', req.headers['content-type']);
+    
+    // Check if the body has already been parsed
+    if (req.body && Object.keys(req.body).length > 0) {
+      console.log('Body already parsed:', req.body);
+      // The request body has already been parsed by json middleware
+      next();
+      return;
+    }
+    
+    // If content-type is not application/json or body wasn't parsed, try to extract body
+    let rawData = '';
+    req.on('data', chunk => {
+      rawData += chunk.toString();
+    });
+    
+    req.on('end', () => {
+      try {
+        if (rawData) {
+          console.log('Raw data received:', rawData);
+          try {
+            req.body = JSON.parse(rawData);
+            console.log('Parsed beacon data:', req.body);
+          } catch (parseError) {
+            console.error('Error parsing data:', parseError);
             req.body = {};
           }
-          
-          // For beacon requests on email endpoint, immediately process them with higher priority
-          if (req.url === '/api/send-tracking-data' || req.url.endsWith('/send-tracking-data')) {
-            console.log('Processing high-priority email beacon request');
-            req.isBeaconEmail = true;
-          }
-          
-          next();
-        } catch (e) {
-          console.error('Error processing beacon data:', e);
-          // Don't fail the request if parsing fails
-          req.body = {};
-          next();
         }
-      });
-    } else {
-      next();
-    }
+        next();
+      } catch (e) {
+        console.error('Error processing request data:', e);
+        req.body = {};
+        next();
+      }
+    });
   } else {
     next();
   }
 });
-
-// Standard JSON parsing middleware - MUST come after the beacon middleware
-app.use(express.json());
 
 // Path to tracking data file
 const trackingDataPath = path.join(__dirname, 'tracking_data.json');
@@ -330,9 +296,194 @@ app.post('/api/track/:eventType', async (req, res) => {
 });
 
 // Helper function to process email sending (used by both normal and beacon paths)
-async function processEmailSending(userEmail, reason) {
+// async function processEmailSending(userEmail, reason) {
+//   // Debug log for diagnostics
+//   console.log('================== PROCESS EMAIL SENDING STARTED ==================');
+//   console.log(`User: ${userEmail}, Reason: ${reason}`);
+//   console.log(`Timestamp: ${new Date().toISOString()}`);
+  
+//   // ADD THIS DEBUG SECTION AT THE BEGINNING
+//   console.log('================== EMAIL CONFIG CHECK ==================');
+//   console.log('EMAIL_USER:', process.env.EMAIL_USER || 'Not configured');
+//   console.log('EMAIL_PASS:', process.env.EMAIL_PASS ? 'Is configured' : 'Not configured');
+//   console.log('EMAIL_RECIPIENT:', process.env.EMAIL_RECIPIENT || 'Not configured');
+    
+//   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS || !process.env.EMAIL_RECIPIENT) {
+//     console.error('EMAIL CONFIGURATION ERROR: Missing required email settings');
+//     return { 
+//       success: false, 
+//       message: 'Email configuration is incomplete. Check server logs for details.' 
+//     };
+//   }
 
-    // ADD THIS DEBUG SECTION AT THE BEGINNING
+//   // Read tracking data
+//   console.log('Reading tracking data file...');
+//   const trackingData = await readTrackingData();
+//   console.log(`Loaded tracking data with ${trackingData.length} events`);
+  
+//   if (trackingData.length === 0) {
+//     console.log('No tracking data to send');
+//     return { success: true, message: 'No tracking data to send' };
+//   }
+  
+//   console.log(`Preparing email with ${trackingData.length} events`);
+  
+//   // Prepare email content
+//   const subject = `Tracking Data Report - ${reason || 'User Action'} - ${new Date().toISOString()}`;
+  
+//   // Create a summary of the tracking data
+//   const eventsCount = trackingData.length;
+//   const eventTypes = {};
+//   trackingData.forEach(event => {
+//     eventTypes[event.type] = (eventTypes[event.type] || 0) + 1;
+//   });
+  
+//   // Get the last 10 events for a preview
+//   const recentEvents = trackingData.slice(-10);
+  
+//   // Format the email content
+//   const htmlContent = `
+//     <h2>Tracking Data Report</h2>
+//     <p><strong>Reason:</strong> ${reason || 'User Action'}</p>
+//     <p><strong>User:</strong> ${userEmail || 'Unknown'}</p>
+//     <p><strong>Date:</strong> ${new Date().toISOString()}</p>
+//     <p><strong>Total Events:</strong> ${eventsCount}</p>
+    
+//     <h3>Event Types Summary:</h3>
+//     <ul>
+//       ${Object.entries(eventTypes).map(([type, count]) => 
+//         `<li>${type}: ${count} events</li>`
+//       ).join('')}
+//     </ul>
+    
+//     <h3>Recent Events (Last 10):</h3>
+//     <pre>${JSON.stringify(recentEvents, null, 2)}</pre>
+    
+//     <p>Full tracking data is attached as JSON.</p>
+//   `;
+  
+//   // Log email preparation details
+//   console.log(`================== EMAIL PREPARATION COMPLETE ==================`);
+//   console.log(`Email subject: ${subject}`);
+//   console.log(`Email recipient: ${EMAIL_RECIPIENT}`);
+//   console.log(`Tracking data has ${eventsCount} events`);
+  
+//   // Prepare email
+//   const mailOptions = {
+//     from: EMAIL_USER,
+//     to: EMAIL_RECIPIENT,
+//     subject: subject,
+//     html: htmlContent,
+//     attachments: [
+//       {
+//         filename: 'tracking_data.json',
+//         content: JSON.stringify(trackingData, null, 2)
+//       }
+//     ]
+//   };
+  
+//   // Send the email
+//   try {
+//     console.log('================== ATTEMPTING TO SEND EMAIL ==================');
+//     console.log(`From: ${EMAIL_USER}`);
+//     console.log(`To: ${EMAIL_RECIPIENT}`);
+//     console.log(`Attachment size: ${JSON.stringify(trackingData).length} bytes`);
+    
+//     const info = await transporter.sendMail(mailOptions);
+    
+//     console.log('================== EMAIL SENT SUCCESSFULLY ==================');
+//     console.log('Message ID:', info.messageId);
+//     console.log('Response:', info.response);
+    
+//     // Log to a file for debugging
+//     const logEntry = {
+//       timestamp: new Date().toISOString(),
+//       success: true,
+//       userEmail,
+//       reason,
+//       messageId: info.messageId,
+//       eventsCount
+//     };
+    
+//     try {
+//       let logs = [];
+//       try {
+//         const existingLogsData = await fs.readFile(emailLogPath, 'utf8');
+//         logs = JSON.parse(existingLogsData);
+//       } catch (e) {
+//         // File might not exist yet, that's okay
+//       }
+      
+//       logs.push(logEntry);
+//       await fs.writeFile(emailLogPath, JSON.stringify(logs, null, 2));
+//       console.log('Email log entry written to:', emailLogPath);
+//     } catch (logError) {
+//       console.error('Error writing to email log file:', logError);
+//     }
+    
+//     // Backup the tracking data with a timestamp
+//     const timestamp = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-');
+//     const backupPath = `${trackingDataPath}.${timestamp}`;
+//     await fs.copyFile(trackingDataPath, backupPath);
+    
+//     console.log(`================== TRACKING DATA BACKED UP ==================`);
+//     console.log(`Backup path: ${backupPath}`);
+//     console.log(`Tracking data sent via email and backed up to ${backupPath}`);
+    
+//     return { success: true, eventsCount, messageId: info.messageId };
+//   } catch (emailError) {
+//     console.error('================== EMAIL SENDING FAILED ==================');
+//     console.error('Error details:', emailError);
+//     console.error('Error message:', emailError.message);
+//     console.error('Error stack:', emailError.stack);
+    
+//     // Check if we have specific SMTP error information
+//     if (emailError.code) {
+//       console.error('Error code:', emailError.code);
+//     }
+//     if (emailError.command) {
+//       console.error('SMTP command:', emailError.command);
+//     }
+    
+//     // Log failure to file
+//     const logEntry = {
+//       timestamp: new Date().toISOString(),
+//       success: false,
+//       userEmail,
+//       reason,
+//       error: emailError.message
+//     };
+    
+//     try {
+//       let logs = [];
+//       try {
+//         const existingLogsData = await fs.readFile(emailLogPath, 'utf8');
+//         logs = JSON.parse(existingLogsData);
+//       } catch (e) {
+//         // File might not exist yet, that's okay
+//       }
+      
+//       logs.push(logEntry);
+//       await fs.writeFile(emailLogPath, JSON.stringify(logs, null, 2));
+//       console.log('Email error log entry written to:', emailLogPath);
+//     } catch (logError) {
+//       console.error('Error writing error to email log file:', logError);
+//     }
+    
+//     throw emailError;
+//   }
+// }
+
+/// NEW ONE
+// Helper function to process email sending with additional debugging
+async function processEmailSending(userEmail, reason) {
+  try {
+    // Debug log for diagnostics
+    console.log('================== PROCESS EMAIL SENDING STARTED ==================');
+    console.log(`User: ${userEmail}, Reason: ${reason}`);
+    console.log(`Timestamp: ${new Date().toISOString()}`);
+    
+    // CRITICAL: Verify email config is present and correct
     console.log('================== EMAIL CONFIG CHECK ==================');
     console.log('EMAIL_USER:', process.env.EMAIL_USER || 'Not configured');
     console.log('EMAIL_PASS:', process.env.EMAIL_PASS ? 'Is configured' : 'Not configured');
@@ -345,98 +496,98 @@ async function processEmailSending(userEmail, reason) {
         message: 'Email configuration is incomplete. Check server logs for details.' 
       };
     }
-    
-    // Temporary test logging
-    try {
-      console.log('================== PROCESS EMAIL SENDING STARTED ==================');
-      console.log(`User: ${userEmail}, Reason: ${reason}`);
-      console.log(`Timestamp: ${new Date().toISOString()}`);
-    } catch (e) {
-      console.error('Error in test logging:', e);
-    }
-  // Temporary test logging
-  try {
-    console.log('================== PROCESS EMAIL SENDING STARTED ==================');
-    console.log(`User: ${userEmail}, Reason: ${reason}`);
-    console.log(`Timestamp: ${new Date().toISOString()}`);
-  } catch (e) {
-    console.error('Error in test logging:', e);
-  }
 
-  // Read tracking data
-  console.log('Reading tracking data file...');
-  const trackingData = await readTrackingData();
-  console.log(`Loaded tracking data with ${trackingData.length} events`);
-  
-  if (trackingData.length === 0) {
-    console.log('No tracking data to send');
-    return { success: true, message: 'No tracking data to send' };
-  }
-  
-  console.log(`Preparing email with ${trackingData.length} events`);
-  
-  // Prepare email content
-  const subject = `Tracking Data Report - ${reason || 'User Action'} - ${new Date().toISOString()}`;
-  
-  // Create a summary of the tracking data
-  const eventsCount = trackingData.length;
-  const eventTypes = {};
-  trackingData.forEach(event => {
-    eventTypes[event.type] = (eventTypes[event.type] || 0) + 1;
-  });
-  
-  // Get the last 10 events for a preview
-  const recentEvents = trackingData.slice(-10);
-  
-  // Format the email content
-  const htmlContent = `
-    <h2>Tracking Data Report</h2>
-    <p><strong>Reason:</strong> ${reason || 'User Action'}</p>
-    <p><strong>User:</strong> ${userEmail || 'Unknown'}</p>
-    <p><strong>Date:</strong> ${new Date().toISOString()}</p>
-    <p><strong>Total Events:</strong> ${eventsCount}</p>
+    // Read tracking data
+    console.log('Reading tracking data file...');
+    const trackingData = await readTrackingData();
+    console.log(`Loaded tracking data with ${trackingData.length} events`);
     
-    <h3>Event Types Summary:</h3>
-    <ul>
-      ${Object.entries(eventTypes).map(([type, count]) => 
-        `<li>${type}: ${count} events</li>`
-      ).join('')}
-    </ul>
+    if (trackingData.length === 0) {
+      console.log('No tracking data to send');
+      return { success: true, message: 'No tracking data to send' };
+    }
     
-    <h3>Recent Events (Last 10):</h3>
-    <pre>${JSON.stringify(recentEvents, null, 2)}</pre>
+    console.log(`Preparing email with ${trackingData.length} events`);
     
-    <p>Full tracking data is attached as JSON.</p>
-  `;
-  
-  // Log email preparation details
-  console.log(`================== EMAIL PREPARATION COMPLETE ==================`);
-  console.log(`Email subject: ${subject}`);
-  console.log(`Email recipient: ${EMAIL_RECIPIENT}`);
-  console.log(`Tracking data has ${eventsCount} events`);
-  
-  // Prepare email
-  const mailOptions = {
-    from: EMAIL_USER,
-    to: EMAIL_RECIPIENT,
-    subject: subject,
-    html: htmlContent,
-    attachments: [
-      {
-        filename: 'tracking_data.json',
-        content: JSON.stringify(trackingData, null, 2)
-      }
-    ]
-  };
-  
-  // Send the email
-  try {
+    // Prepare email content
+    const subject = `Tracking Data Report - ${reason || 'User Action'} - ${new Date().toISOString()}`;
+    
+    // Create a summary of the tracking data
+    const eventsCount = trackingData.length;
+    const eventTypes = {};
+    trackingData.forEach(event => {
+      eventTypes[event.type] = (eventTypes[event.type] || 0) + 1;
+    });
+    
+    // Get the last 10 events for a preview
+    const recentEvents = trackingData.slice(-10);
+    
+    // Format the email content
+    const htmlContent = `
+      <h2>Tracking Data Report</h2>
+      <p><strong>Reason:</strong> ${reason || 'User Action'}</p>
+      <p><strong>User:</strong> ${userEmail || 'Unknown'}</p>
+      <p><strong>Date:</strong> ${new Date().toISOString()}</p>
+      <p><strong>Total Events:</strong> ${eventsCount}</p>
+      
+      <h3>Event Types Summary:</h3>
+      <ul>
+        ${Object.entries(eventTypes).map(([type, count]) => 
+          `<li>${type}: ${count} events</li>`
+        ).join('')}
+      </ul>
+      
+      <h3>Recent Events (Last 10):</h3>
+      <pre>${JSON.stringify(recentEvents, null, 2)}</pre>
+      
+      <p>Full tracking data is attached as JSON.</p>
+    `;
+    
+    // Log email preparation details
+    console.log(`================== EMAIL PREPARATION COMPLETE ==================`);
+    console.log(`Email subject: ${subject}`);
+    console.log(`Email recipient: ${EMAIL_RECIPIENT}`);
+    console.log(`Tracking data has ${eventsCount} events`);
+    
+    // Prepare email
+    const mailOptions = {
+      from: EMAIL_USER,
+      to: EMAIL_RECIPIENT,
+      subject: subject,
+      html: htmlContent,
+      attachments: [
+        {
+          filename: 'tracking_data.json',
+          content: JSON.stringify(trackingData, null, 2)
+        }
+      ]
+    };
+    
+    // CRITICAL: Debug the nodemailer transporter status before sending
+    console.log('================== VERIFYING TRANSPORTER ==================');
+    try {
+      const verifyResult = await transporter.verify();
+      console.log('Transporter verification result:', verifyResult);
+    } catch (verifyError) {
+      console.error('Transporter verification failed:', verifyError);
+      throw new Error(`Email transporter verification failed: ${verifyError.message}`);
+    }
+    
+    // Send the email with additional logging
     console.log('================== ATTEMPTING TO SEND EMAIL ==================');
     console.log(`From: ${EMAIL_USER}`);
     console.log(`To: ${EMAIL_RECIPIENT}`);
     console.log(`Attachment size: ${JSON.stringify(trackingData).length} bytes`);
     
-    const info = await transporter.sendMail(mailOptions);
+    let info;
+    try {
+      console.log('Calling transporter.sendMail...');
+      info = await transporter.sendMail(mailOptions);
+      console.log('sendMail completed successfully');
+    } catch (sendError) {
+      console.error('ERROR INSIDE SENDMAIL:', sendError);
+      throw sendError; // Re-throw to be caught by the outer try/catch
+    }
     
     console.log('================== EMAIL SENT SUCCESSFULLY ==================');
     console.log('Message ID:', info.messageId);
@@ -491,6 +642,9 @@ async function processEmailSending(userEmail, reason) {
     if (emailError.command) {
       console.error('SMTP command:', emailError.command);
     }
+    if (emailError.response) {
+      console.error('SMTP response:', emailError.response);
+    }
     
     // Log failure to file
     const logEntry = {
@@ -520,12 +674,23 @@ async function processEmailSending(userEmail, reason) {
     throw emailError;
   }
 }
+/// END NEW ONE
 
 // Improved email sending endpoint with beacon support
 app.post('/api/send-tracking-data', async (req, res) => {
   try {
-    console.log('Request received at /api/send-tracking-data');
+    console.log('============= /api/send-tracking-data RECEIVED =============');
+    console.log('Headers:', req.headers);
     console.log('Request body:', req.body);
+    
+    // Check if the body is empty or undefined
+    if (!req.body || Object.keys(req.body).length === 0) {
+      console.error('Request body is empty or undefined');
+      return res.status(400).json({ 
+        error: 'Missing request body',
+        details: 'Request body is required'
+      });
+    }
     
     // Check if we have the required fields
     const { userEmail, reason } = req.body;
@@ -539,11 +704,16 @@ app.post('/api/send-tracking-data', async (req, res) => {
     }
     
     console.log(`Received request to send tracking data for ${userEmail} with reason: ${reason || 'No reason provided'}`);
-    console.log(`Is beacon request: ${req.isBeaconEmail ? 'Yes' : 'No'}`);
     
     // For beacon requests, respond immediately to avoid browser timeout
-    if (req.isBeaconEmail) {
-      res.status(202).send(); // Accepted status, tells browser the request was received
+    const isBeaconRequest = req.headers['content-type']?.includes('text/plain') || 
+                           req.get('sec-fetch-mode') === 'no-cors';
+                           
+    console.log(`Is beacon request: ${isBeaconRequest ? 'Yes' : 'No'}`);
+    
+    if (isBeaconRequest) {
+      // Send a 202 Accepted status for beacon requests
+      res.status(202).send(); 
       
       // Then process the email sending asynchronously
       processEmailSending(userEmail, reason || 'Beacon Request')
@@ -555,7 +725,7 @@ app.post('/api/send-tracking-data', async (req, res) => {
           console.error('Error details:', err.stack);
         });
     } else {
-      // For regular requests, process normally
+      // For regular requests, process normally and wait for the result
       try {
         console.log('Processing email synchronously...');
         const result = await processEmailSending(userEmail, reason || 'Manual Request');
@@ -586,44 +756,31 @@ app.post('/api/send-tracking-data', async (req, res) => {
     console.error('Error in send-tracking-data endpoint:', error);
     console.error('Error stack:', error.stack);
     
-    // Only send error response if it's not a beacon request (which already received a response)
-    if (!req.isBeaconEmail) {
-      res.status(500).json({ 
-        error: 'Failed to process tracking data request',
-        details: error.message 
-      });
-    }
+    res.status(500).json({ 
+      error: 'Failed to process tracking data request',
+      details: error.message 
+    });
   }
 });
 
 // New endpoint to clear tracking data after sending
 app.post('/api/clear-tracking-data', async (req, res) => {
   try {
-    // Check if it's a beacon request
-    const isBeacon = req.isBeaconEmail || false;
+    console.log('Clearing tracking data');
     
     // Write empty array to file
     await writeTrackingData([]);
     
-    // For beacon requests, respond immediately
-    if (isBeacon) {
-      res.status(202).send();
-    } else {
-      res.status(200).json({ 
-        success: true, 
-        message: 'Tracking data cleared' 
-      });
-    }
+    res.status(200).json({ 
+      success: true, 
+      message: 'Tracking data cleared' 
+    });
   } catch (error) {
     console.error('Error clearing tracking data:', error);
-    
-    // Only send error response if it's not a beacon request
-    if (!req.isBeaconEmail) {
-      res.status(500).json({ 
-        error: 'Failed to clear tracking data',
-        details: error.message 
-      });
-    }
+    res.status(500).json({ 
+      error: 'Failed to clear tracking data',
+      details: error.message 
+    });
   }
 });
 

@@ -1,0 +1,33 @@
+[
+  {
+    "type": "tab_hidden",
+    "timestamp": "2025-03-23T11:34:36.706Z",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+    "ip": "::1",
+    "data": {
+      "url": "/"
+    }
+  },
+  {
+    "type": "mouse_move",
+    "timestamp": "2025-03-23T11:34:37.985Z",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+    "ip": "::1",
+    "data": {
+      "x": 384,
+      "y": 16,
+      "viewportWidth": 1470,
+      "viewportHeight": 500,
+      "path": "/"
+    }
+  },
+  {
+    "type": "tab_visible",
+    "timestamp": "2025-03-23T12:40:45.011Z",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+    "ip": "::1",
+    "data": {
+      "url": "/"
+    }
+  }
+]

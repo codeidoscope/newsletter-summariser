@@ -1,0 +1,18 @@
+[
+  {
+    "timestamp": "2025-03-23T12:40:45.221Z",
+    "success": true,
+    "userEmail": "test@example.com",
+    "reason": "Debug Tool Beacon Test",
+    "messageId": "<7bc5c151-e883-83b5-19ee-2da419257e88@gmail.com>",
+    "eventsCount": 2
+  },
+  {
+    "timestamp": "2025-03-23T12:44:10.905Z",
+    "success": true,
+    "userEmail": "test@example.com",
+    "reason": "Debug Tool Beacon Test",
+    "messageId": "<76cd7a53-d38d-2c40-7db7-b73cacb08781@gmail.com>",
+    "eventsCount": 2
+  }
+]

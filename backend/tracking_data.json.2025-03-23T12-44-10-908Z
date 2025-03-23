@@ -1,0 +1,32 @@
+[
+  {
+    "type": "tab_hidden",
+    "timestamp": "2025-03-23T12:44:00.734Z",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+    "ip": "::1",
+    "data": {
+      "url": "/"
+    }
+  },
+  {
+    "type": "scroll_session",
+    "timestamp": "2025-03-23T12:44:01.909Z",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+    "ip": "::1",
+    "data": {
+      "totalScrollDistance": 5126.5,
+      "reachedBottom": true,
+      "timeSpent": {
+        "top": 4452,
+        "quarter": 17,
+        "half": 4,
+        "threeQuarters": 3,
+        "bottom": 92
+      },
+      "viewedSections": [
+        "root"
+      ],
+      "pattern": "reading"
+    }
+  }
+]

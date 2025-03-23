@@ -17,6 +17,9 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = process.env.PORT || 5175;
 
+// Email log path for debugging
+const emailLogPath = path.join(__dirname, 'email_logs.json');
+
 // Email configuration - Use environment variables
 const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;
@@ -53,19 +56,20 @@ transporter.verify(function(error, success) {
   }
 });
 
-// CORS configuration - FIXED VERSION
+// CORS configuration with improved handling for Beacon API
 const corsOptions = {
   origin: function(origin, callback) {
-    // Allow requests from your frontend origin
-    // In development, this is typically http://localhost:5173
-    const allowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
-    
-    // During development or for requests like Beacon API that may not include origin
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, origin);
+    // Allow all origins during development or when origin is null (like in Beacon requests)
+    if (!origin || process.env.NODE_ENV === 'development') {
+      callback(null, true);
     } else {
-      console.warn(`CORS blocked request from origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
+      const allowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`CORS blocked request from origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      }
     }
   },
   credentials: true,
@@ -78,6 +82,12 @@ app.use(cors(corsOptions));
 
 // Handle preflight requests explicitly
 app.options('*', cors(corsOptions));
+
+// Add request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
+});
 
 // Improved middleware for Beacon API - FIXED VERSION
 app.use((req, res, next) => {
@@ -105,22 +115,27 @@ app.use((req, res, next) => {
         try {
           // Parse the data if possible
           if (data) {
-            console.log('Received beacon data:', data.length > 200 ? data.substring(0, 200) + '...' : data); // Log first 200 chars only
-            req.body = JSON.parse(data);
-            console.log('Parsed beacon data:', req.body);
+            console.log('Received beacon data size:', data.length);
+            try {
+              req.body = JSON.parse(data);
+              console.log('Parsed beacon data:', req.body);
+            } catch (parseError) {
+              console.error('Error parsing beacon JSON data:', parseError);
+              req.body = {};
+            }
           } else {
             req.body = {};
           }
           
           // For beacon requests on email endpoint, immediately process them with higher priority
-          if (req.url === '/api/send-tracking-data') {
+          if (req.url === '/api/send-tracking-data' || req.url.endsWith('/send-tracking-data')) {
             console.log('Processing high-priority email beacon request');
             req.isBeaconEmail = true;
           }
           
           next();
         } catch (e) {
-          console.error('Error parsing beacon data:', e);
+          console.error('Error processing beacon data:', e);
           // Don't fail the request if parsing fails
           req.body = {};
           next();
@@ -308,15 +323,26 @@ app.post('/api/track/:eventType', async (req, res) => {
 
 // Helper function to process email sending (used by both normal and beacon paths)
 async function processEmailSending(userEmail, reason) {
+  // Temporary test logging
+  try {
+    console.log('================== PROCESS EMAIL SENDING STARTED ==================');
+    console.log(`User: ${userEmail}, Reason: ${reason}`);
+    console.log(`Timestamp: ${new Date().toISOString()}`);
+  } catch (e) {
+    console.error('Error in test logging:', e);
+  }
+
   // Read tracking data
+  console.log('Reading tracking data file...');
   const trackingData = await readTrackingData();
+  console.log(`Loaded tracking data with ${trackingData.length} events`);
   
   if (trackingData.length === 0) {
     console.log('No tracking data to send');
     return { success: true, message: 'No tracking data to send' };
   }
   
-  console.log(`Sending tracking data email with ${trackingData.length} events`);
+  console.log(`Preparing email with ${trackingData.length} events`);
   
   // Prepare email content
   const subject = `Tracking Data Report - ${reason || 'User Action'} - ${new Date().toISOString()}`;
@@ -352,9 +378,10 @@ async function processEmailSending(userEmail, reason) {
     <p>Full tracking data is attached as JSON.</p>
   `;
   
-  // Log that we're attempting to send
-  console.log(`Attempting to send tracking data email to ${EMAIL_RECIPIENT}`);
+  // Log email preparation details
+  console.log(`================== EMAIL PREPARATION COMPLETE ==================`);
   console.log(`Email subject: ${subject}`);
+  console.log(`Email recipient: ${EMAIL_RECIPIENT}`);
   console.log(`Tracking data has ${eventsCount} events`);
   
   // Prepare email
@@ -373,20 +400,92 @@ async function processEmailSending(userEmail, reason) {
   
   // Send the email
   try {
+    console.log('================== ATTEMPTING TO SEND EMAIL ==================');
+    console.log(`From: ${EMAIL_USER}`);
+    console.log(`To: ${EMAIL_RECIPIENT}`);
+    console.log(`Attachment size: ${JSON.stringify(trackingData).length} bytes`);
+    
     const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent successfully!');
+    
+    console.log('================== EMAIL SENT SUCCESSFULLY ==================');
     console.log('Message ID:', info.messageId);
+    console.log('Response:', info.response);
+    
+    // Log to a file for debugging
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      success: true,
+      userEmail,
+      reason,
+      messageId: info.messageId,
+      eventsCount
+    };
+    
+    try {
+      let logs = [];
+      try {
+        const existingLogsData = await fs.readFile(emailLogPath, 'utf8');
+        logs = JSON.parse(existingLogsData);
+      } catch (e) {
+        // File might not exist yet, that's okay
+      }
+      
+      logs.push(logEntry);
+      await fs.writeFile(emailLogPath, JSON.stringify(logs, null, 2));
+      console.log('Email log entry written to:', emailLogPath);
+    } catch (logError) {
+      console.error('Error writing to email log file:', logError);
+    }
     
     // Backup the tracking data with a timestamp
     const timestamp = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-');
     const backupPath = `${trackingDataPath}.${timestamp}`;
     await fs.copyFile(trackingDataPath, backupPath);
     
+    console.log(`================== TRACKING DATA BACKED UP ==================`);
+    console.log(`Backup path: ${backupPath}`);
     console.log(`Tracking data sent via email and backed up to ${backupPath}`);
     
     return { success: true, eventsCount, messageId: info.messageId };
   } catch (emailError) {
-    console.error('Failed to send email:', emailError);
+    console.error('================== EMAIL SENDING FAILED ==================');
+    console.error('Error details:', emailError);
+    console.error('Error message:', emailError.message);
+    console.error('Error stack:', emailError.stack);
+    
+    // Check if we have specific SMTP error information
+    if (emailError.code) {
+      console.error('Error code:', emailError.code);
+    }
+    if (emailError.command) {
+      console.error('SMTP command:', emailError.command);
+    }
+    
+    // Log failure to file
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      success: false,
+      userEmail,
+      reason,
+      error: emailError.message
+    };
+    
+    try {
+      let logs = [];
+      try {
+        const existingLogsData = await fs.readFile(emailLogPath, 'utf8');
+        logs = JSON.parse(existingLogsData);
+      } catch (e) {
+        // File might not exist yet, that's okay
+      }
+      
+      logs.push(logEntry);
+      await fs.writeFile(emailLogPath, JSON.stringify(logs, null, 2));
+      console.log('Email error log entry written to:', emailLogPath);
+    } catch (logError) {
+      console.error('Error writing error to email log file:', logError);
+    }
+    
     throw emailError;
   }
 }
@@ -480,6 +579,28 @@ app.get('/api/check-email-config', (req, res) => {
   });
 });
 
+// Add debug endpoint for email logs
+app.get('/api/email-logs', async (req, res) => {
+  try {
+    let logs = [];
+    try {
+      const existingLogsData = await fs.readFile(emailLogPath, 'utf8');
+      logs = JSON.parse(existingLogsData);
+    } catch (e) {
+      // File might not exist yet, that's okay
+    }
+    
+    res.status(200).json({
+      logs: logs.slice(-20) // Return only the most recent 20 logs
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to retrieve email logs',
+      details: error.message
+    });
+  }
+});
+
 // Test endpoint to send a simple email
 app.get('/api/test-email', async (req, res) => {
   try {
@@ -526,6 +647,95 @@ app.get('/api/test-email', async (req, res) => {
       stack: error.stack
     });
   }
+});
+
+// Add debug HTML page
+app.get('/debug-email', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Email Debugging</title>
+      <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        button { padding: 10px 20px; margin: 10px 0; background: #4285f4; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 4px; overflow: auto; max-height: 400px; }
+        .success { color: green; }
+        .error { color: red; }
+      </style>
+    </head>
+    <body>
+      <h1>Email Debugging Tool</h1>
+      <div>
+        <h3>Email Configuration</h3>
+        <p>Email User: ${EMAIL_USER || 'Not Configured'}</p>
+        <p>Email Recipient: ${EMAIL_RECIPIENT || 'Not Configured'}</p>
+        <p>Email Password: ${EMAIL_PASS ? 'Configured' : 'Not Configured'}</p>
+      </div>
+      
+      <div>
+        <h3>Actions</h3>
+        <button id="testEmail">Send Test Email</button>
+        <button id="checkLogs">Check Email Logs</button>
+        <button id="simulateBeacon">Simulate Beacon Send</button>
+      </div>
+      
+      <div id="result" style="margin-top: 20px;"></div>
+      
+      <script>
+        document.getElementById('testEmail').addEventListener('click', async () => {
+          try {
+            document.getElementById('result').innerHTML = '<p>Sending test email...</p>';
+            const response = await fetch('/api/test-email');
+            const data = await response.json();
+            document.getElementById('result').innerHTML = 
+              '<h3 class="success">Test Result:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+          } catch (error) {
+            document.getElementById('result').innerHTML = 
+              '<h3 class="error">Error:</h3><pre>' + error.message + '</pre>';
+          }
+        });
+        
+        document.getElementById('checkLogs').addEventListener('click', async () => {
+          try {
+            document.getElementById('result').innerHTML = '<p>Checking email logs...</p>';
+            const response = await fetch('/api/email-logs');
+            const data = await response.json();
+            document.getElementById('result').innerHTML = 
+              '<h3>Email Logs:</h3><pre>' + JSON.stringify(data.logs, null, 2) + '</pre>';
+          } catch (error) {
+            document.getElementById('result').innerHTML = 
+              '<h3 class="error">Error:</h3><pre>' + error.message + '</pre>';
+          }
+        });
+        
+        document.getElementById('simulateBeacon').addEventListener('click', () => {
+          try {
+            document.getElementById('result').innerHTML = '<p>Simulating beacon request...</p>';
+            
+            const data = {
+              userEmail: 'test@example.com',
+              reason: 'Debug Tool Beacon Test',
+              timestamp: new Date().toISOString()
+            };
+            
+            // Use Beacon API
+            const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
+            const result = navigator.sendBeacon('/api/send-tracking-data', blob);
+            
+            document.getElementById('result').innerHTML = 
+              '<h3 class="' + (result ? 'success' : 'error') + '">Beacon Result:</h3>' +
+              '<p>Beacon queued: ' + (result ? 'Successfully' : 'Failed') + '</p>' +
+              '<p>Check the email logs after a few seconds to see if the email was sent.</p>';
+          } catch (error) {
+            document.getElementById('result').innerHTML = 
+              '<h3 class="error">Error:</h3><pre>' + error.message + '</pre>';
+          }
+        });
+      </script>
+    </body>
+    </html>
+  `);
 });
 
 // Start the server

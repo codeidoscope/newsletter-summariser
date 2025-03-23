@@ -27,17 +27,8 @@ export const sendBeacon = (endpoint: string, data: any): boolean => {
   }
   
   try {
-    // Construct the URL correctly to avoid /api/api/ doubling
-    // If API_BASE_URL already includes /api, don't add it again
-    let url: string;
-    
-    if (API_BASE_URL.endsWith('/api')) {
-      // API_BASE_URL already has /api suffix, so just add the endpoint
-      url = `${API_BASE_URL}/${endpoint}`;
-    } else {
-      // API_BASE_URL doesn't have /api suffix, so add it
-      url = `${API_BASE_URL}/api/${endpoint}`;
-    }
+    // Construct the URL correctly
+    const url = `${API_BASE_URL}/api/${endpoint}`.replace('/api/api/', '/api/');
     
     console.log(`Sending beacon to URL: ${url}`);
     
@@ -48,19 +39,17 @@ export const sendBeacon = (endpoint: string, data: any): boolean => {
     };
     
     // Ensure data is properly formatted as a Blob with the correct MIME type
-    // This is important for the server to properly parse the request
     const blob = new Blob([JSON.stringify(dataWithTimestamp)], { type: 'application/json' });
     
     // Send the beacon and capture the result
     const result = navigator.sendBeacon(url, blob);
     
-    // Log whether the beacon was successfully queued
     if (result) {
       console.log(`Beacon successfully queued to ${url}`);
     } else {
       console.warn(`Failed to queue beacon to ${url}. The browser may have rejected the request.`);
       
-      // Fallback to fetch with keepalive if sendBeacon fails
+      // Improved fallback: Use fetch with keepalive
       try {
         fetch(url, {
           method: 'POST',
@@ -68,9 +57,11 @@ export const sendBeacon = (endpoint: string, data: any): boolean => {
           body: JSON.stringify(dataWithTimestamp),
           keepalive: true,
           mode: 'cors'
-          // Important: Do NOT include credentials: 'include' here as it can cause CORS issues
-        });
+        }).then(() => console.log('Fallback fetch completed'))
+          .catch(e => console.error('Fallback fetch promise rejected:', e));
+        
         console.log(`Fallback fetch sent to ${url}`);
+        return true; // Consider the fallback attempt as success
       } catch (fetchError) {
         console.error('Fallback fetch failed:', fetchError);
       }
@@ -114,16 +105,27 @@ export const sendTrackingBeacon = (userEmail: string, reason: string): boolean =
  * @returns boolean True if the beacon was successfully queued
  */
 export const sendTrackingEmailBeacon = (userEmail: string, reason: string): boolean => {
-  console.log(`Attempting to send tracking email beacon for ${userEmail} with reason: ${reason}`);
+  console.log(`Attempting to send tracking email beacon for ${userEmail}`);
   
-  return sendBeacon('send-tracking-data', { 
+  // Create the URL correctly
+  const url = `${API_BASE_URL}/send-tracking-data`.replace('/api/api/', '/api/');
+  
+  // Format the data
+  const data = { 
     userEmail, 
     reason,
-    timestamp: new Date().toISOString(),
-    path: window.location.pathname,
-    userAgent: navigator.userAgent
-  });
-};
+    timestamp: new Date().toISOString()
+  };
+  
+  // Convert to blob - this is crucial for the Beacon API
+  const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
+  
+  // Send the beacon directly rather than through your helper
+  const result = navigator.sendBeacon(url, blob);
+  
+  console.log(`Beacon send attempt result: ${result}`);
+  return result;
+}
 
 /**
  * Send request to clear tracking data via beacon API
@@ -158,7 +160,7 @@ export const sendTrackingWithFallback = (userEmail: string, reason: string): boo
   return emailBeaconResult || trackingBeaconResult;
 };
 
-// At the end of BeaconService.ts
+// Export the service functions
 export const BeaconService = {
   sendBeacon,
   sendTrackingBeacon,

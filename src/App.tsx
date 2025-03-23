@@ -9,10 +9,12 @@ import { Email, UserProfile } from './types';
 import { ThemeProvider } from './context/ThemeContext';
 import { parseEmailDate, isToday, isThisWeek } from './utils/dateUtils';
 import { useVisibility } from './hooks/useVisibility.ts';
+import { useReliableTracking } from './hooks/useReliableTracking';
 import Login from './components/Login';
 import Header from './components/Header';
 import EmailList from './components/EmailList';
 import EmailFilter, { FilterOption } from './components/EmailFilter';
+import TrackingTester from './components/TrackingTester';
 
 // Get the recipient filter from environment variables
 const RECIPIENT_FILTER = import.meta.env.VITE_RECIPIENT_FILTER || null;
@@ -59,6 +61,13 @@ function App() {
     }
   });
 
+  // Add the reliable tracking hook
+  const { sendTrackingNow } = useReliableTracking({
+    userEmail: user?.email || null,
+    isActive: Boolean(user), // Only active when user is logged in
+    trackingInterval: 10 * 60 * 1000 // Send tracking every 10 minutes
+  });
+
   useEffect(() => {
     // Initialize tracking when app loads
     initTracking();
@@ -97,18 +106,12 @@ function App() {
       if (user) {
         console.log('beforeunload event triggered, sending tracking data');
         
-        // 1. Send regular tracking event 
-        trackEvent('page_close', {
-          userEmail: user.email,
-          timestamp: new Date().toISOString()
-        });
-        
-        // 2. Send tracking beacon for general tracking
-        BeaconService.sendTrackingBeacon(user.email, 'Page Close');
-        
-        // 3. Send email beacon to ensure tracking data is emailed
+        // Use Beacon API directly for all tracking - most reliable for page close
         const beaconSent = BeaconService.sendTrackingEmailBeacon(user.email, 'Page Close');
         console.log(`Email beacon sent: ${beaconSent ? 'successfully queued' : 'failed to queue'}`);
+        
+        // Send a regular tracking beacon as well
+        BeaconService.sendTrackingBeacon(user.email, 'Page Close');
         
         // For confirmation dialog (optional)
         event.preventDefault();
@@ -117,10 +120,18 @@ function App() {
       }
     };
     
+    // Use both beforeunload and unload for maximum reliability
     window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('unload', () => {
+      if (user) {
+        // Last ditch effort on unload - use only beacon here
+        BeaconService.sendTrackingEmailBeacon(user.email, 'Page Unload');
+      }
+    });
     
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('unload', () => {});
     };
   }, [user]);
 
@@ -226,40 +237,44 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
     setAccessToken(token);
   };
 
-  // Enhanced handleLogout with better tracking and beacon fallback
+  // Modified handleLogout function for App.tsx
 const handleLogout = async () => {
-  // If we have user data, send tracking data via email before logout
   if (user) {
     try {
       console.log('Sending tracking data before logout');
       
-      // First track the regular logout event
-      await trackLogout();
+      // Use fetch with keepalive for more reliable delivery during page transitions
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/send-tracking-data`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userEmail: user.email,
+          reason: 'User Logout - Sync Request',
+          timestamp: new Date().toISOString()
+        }),
+        keepalive: true // This is crucial - allows request to continue even as page unloads
+      });
       
-      // Try to send the email with tracking data using regular XHR/fetch
-      await sendTrackingDataAndClear(user.email, 'User Logout');
+      // Check if successful
+      if (response.ok) {
+        console.log('Tracking data sent successfully');
+      } else {
+        console.error('Failed to send tracking data:', await response.text());
+      }
       
-      // Use beacon as an additional fallback for reliability
-      BeaconService.sendTrackingEmailBeacon(user.email, 'User Logout (Beacon Fallback)');
-      
-      // Add a small delay to ensure the request completes
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      console.log('Tracking data sent successfully');
+      // Add a short delay to give request time to complete
+      await new Promise(resolve => setTimeout(resolve, 300));
       
     } catch (error) {
       console.error('Error sending tracking data on logout:', error);
       
-      // If normal request fails, use beacon API as fallback
-      const beaconSent = BeaconService.sendTrackingWithFallback(user.email, 'User Logout (Error Fallback)');
-      console.log(`Fallback beacon sent: ${beaconSent ? 'successfully' : 'failed'}`);
+      // Use beacon as fallback
+      BeaconService.sendTrackingEmailBeacon(user.email, 'User Logout (Fallback)');
     }
   }
   
-  // Clear token from localStorage
+  // Clear token and continue with logout
   removeToken();
-  
-  // Clear user state
   setAccessToken(null);
   setUser(null);
   setEmails([]);
@@ -417,6 +432,13 @@ const handleLogout = async () => {
                       <p className="text-blue-500 text-xs dark:text-blue-300">
                         <strong>Showing emails sent to:</strong> <code className="bg-blue-50 dark:bg-blue-900/30 px-1 rounded">{RECIPIENT_FILTER}</code>
                       </p>
+                    </div>
+                  )}
+                  
+                  {/* Only show in development mode */}
+                  {import.meta.env.DEV && user && (
+                    <div className="max-w-4xl mx-auto mt-8">
+                      <TrackingTester userEmail={user.email} />
                     </div>
                   )}
                 </div>

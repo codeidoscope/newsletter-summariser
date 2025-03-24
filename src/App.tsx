@@ -13,8 +13,8 @@ import Login from './components/Login';
 import Header from './components/Header';
 import EmailList from './components/EmailList';
 import EmailFilter, { FilterOption } from './components/EmailFilter';
+import { buildApiUrl } from './utils/urlHelper';
 
-// Get the recipient filter from environment variables
 const RECIPIENT_FILTER = import.meta.env.VITE_RECIPIENT_FILTER || null;
 
 function App() {
@@ -30,7 +30,6 @@ function App() {
   const {} = useVisibility({
     inactivityTimeout: 15 * 60 * 1000, // 15 minutes of inactivity
     onBecomeHidden: async () => {
-      // When the tab becomes hidden and we have a user, send tracking data
       if (user) {
         try {
           console.log('Tab hidden, sending tracking data');
@@ -58,7 +57,6 @@ function App() {
   useEffect(() => {
     initTracking();
     
-    // Check for existing token in localStorage on app init
     const initAuth = async () => {
       setIsAuthLoading(true);
       const savedToken = getToken();
@@ -99,7 +97,6 @@ function App() {
         
         // For confirmation dialog (optional)
         event.preventDefault();
-        event.returnValue = '';
         return 'Are you sure you want to leave? Your tracking data will be sent.';
       }
     };
@@ -176,7 +173,6 @@ function App() {
     setIsLoading(true);
     try {
       const maxResults = 20;
-      // Pass the recipient filter from environment variable
       const fetchedEmails = await fetchEmails(accessToken, maxResults, RECIPIENT_FILTER);
       setEmails(fetchedEmails);
       
@@ -193,26 +189,22 @@ function App() {
   const handleFilterChange = (filter: FilterOption) => {
     setActiveFilter(filter);
 
-    // Reload emails when changing filters to ensure we have enough after filtering
     if (filter !== 'all') {
       loadEmails();
     }
   };
 
 const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
-  // Create a copy of emails with isLoading flag for summaries
   const emailsWithLoadingState = emailsToProcess.map(email => ({
     ...email,
     isLoading: true
   }));
   setEmails(emailsWithLoadingState);
 
-  // Process each email for summary
   for (const email of emailsWithLoadingState) {
     try {
       const { summary, newsletterType, unsubscribeLink } = await summarizeEmail(email);
       
-      // Update the email with its summary, newsletter type, and unsubscribe link
       setEmails(prevEmails => 
         prevEmails.map(prevEmail => 
           prevEmail.id === email.id 
@@ -229,7 +221,6 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
     } catch (error) {
       console.error(`Error summarizing email ${email.id}:`, error);
       
-      // Mark as not loading even if there was an error
       setEmails(prevEmails => 
         prevEmails.map(prevEmail => 
           prevEmail.id === email.id 
@@ -245,31 +236,12 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
     setAccessToken(token);
   };
 
-  const buildApiUrl = (endpoint: string): string => {
-    // Get base URL from environment variable or use default
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5175';
-    
-    // Remove trailing slash from base URL if present
-    const baseUrl = API_BASE_URL.endsWith('/') 
-      ? API_BASE_URL.slice(0, -1) 
-      : API_BASE_URL;
-    
-    // Check if baseUrl already ends with /api
-    if (baseUrl.endsWith('/api')) {
-      return `${baseUrl}/${endpoint}`;
-    } else {
-      return `${baseUrl}/api/${endpoint}`;
-    }
-  };
-
-  // Modified handleLogout function for App.tsx
   const handleLogout = async () => {
     if (user) {
       try {
         console.log('Sending tracking data before logout');
         
-        // Correctly build the API URL
-        const url = buildApiUrl('send-tracking-data');
+        const url = buildApiUrl(import.meta.env.VITE_API_BASE_URL || 'http://localhost:5175', 'send-tracking-data');
         
         // Use fetch with keepalive for more reliable delivery during page transitions
         const response = await fetch(url, {
@@ -280,7 +252,7 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
             reason: 'User Logout - Sync Request',
             timestamp: new Date().toISOString()
           }),
-          keepalive: true // This is crucial - allows request to continue even as page unloads
+          keepalive: true
         });
         
         if (response.ok) {
@@ -298,7 +270,6 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
       }
     }
     
-    // Clear token and continue with logout
     removeToken();
     setAccessToken(null);
     setUser(null);
@@ -308,7 +279,6 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
   const handleMarkAsRead = async (emailId: string) => {
     if (!accessToken) return;
     
-    // Set the loading state for this specific email action
     setEmails(prevEmails => 
       prevEmails.map(email => 
         email.id === emailId 
@@ -320,7 +290,6 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
     try {
       await markEmailAsRead(accessToken, emailId);
       
-      // Update the email status in our local state
       setEmails(prevEmails => 
         prevEmails.map(email => 
           email.id === emailId 
@@ -331,7 +300,6 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
     } catch (error) {
       console.error('Error marking email as read:', error);
       
-      // Clear loading state on error
       setEmails(prevEmails => 
         prevEmails.map(email => 
           email.id === emailId 
@@ -345,7 +313,6 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
   const handleDeleteEmail = async (emailId: string) => {
     if (!accessToken) return;
     
-    // Set the loading state for this specific email action
     setEmails(prevEmails => 
       prevEmails.map(email => 
         email.id === emailId 
@@ -357,12 +324,10 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
     try {
       await deleteEmail(accessToken, emailId);
       
-      // Remove the email from our local state
       setEmails(prevEmails => prevEmails.filter(email => email.id !== emailId));
     } catch (error) {
       console.error('Error deleting email:', error);
       
-      // Clear loading state on error
       setEmails(prevEmails => 
         prevEmails.map(email => 
           email.id === emailId 

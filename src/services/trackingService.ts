@@ -225,18 +225,15 @@ const trackClick = async (e: MouseEvent): Promise<void> => {
   const { clientX, clientY } = e;
   const targetElement = e.target as HTMLElement;
   
-  const elementDescription = getElementDescription(targetElement);
-  
+  const trackableElement = targetElement.closest('[data-track-id]');
+  const trackId = trackableElement ? trackableElement.getAttribute('data-track-id') : null;
+
   await trackEvent('click', {
     x: clientX,
     y: clientY,
     viewportWidth: window.innerWidth,
     viewportHeight: window.innerHeight,
-    elementType: targetElement.tagName.toLowerCase(),
-    elementClasses: typeof targetElement.className === 'string' ? 
-      targetElement.className : 
-      (targetElement.classList ? targetElement.classList.value : ''),
-    description: elementDescription
+    ...(trackId && { trackId })
   });
 };
 
@@ -253,12 +250,13 @@ const trackMouseMove = throttle(async (e: MouseEvent): Promise<void> => {
 
 const trackFocus = async (e: FocusEvent): Promise<void> => {
   const targetElement = e.target as HTMLElement;
+
+  const trackableElement = targetElement.closest('[data-track-id]');
+  const trackId = trackableElement ? trackableElement.getAttribute('data-track-id') : null;
+
   
   await trackEvent('focus', {
-    elementType: targetElement.tagName.toLowerCase(),
-    elementClasses: typeof targetElement.className === 'string' ? 
-      targetElement.className : 
-      (targetElement.classList ? targetElement.classList.value : ''),
+    ...(trackId && { trackId })
   });
 };
 

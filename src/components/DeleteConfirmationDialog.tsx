@@ -41,6 +41,7 @@ const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> = ({
           </div>
           <button
             onClick={onCancel}
+            data-track-id="cancel-deletion-close-popup"
             className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
           >
             <X size={20} />
@@ -64,6 +65,7 @@ const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> = ({
             type="button"
             className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600"
             onClick={onCancel}
+            data-track-id="cancel-deletion-button"
             disabled={isLoading}
           >
             Cancel
@@ -72,6 +74,7 @@ const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> = ({
             type="button"
             className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-75"
             onClick={onConfirm}
+            data-track-id="confirm-deletion-button"
             disabled={isLoading}
           >
             {isLoading ? (

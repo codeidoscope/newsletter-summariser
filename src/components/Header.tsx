@@ -38,6 +38,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
           <div className="flex items-center">
             <button
               onClick={handleSendTracking}
+              data-track-id="send-tracking-data-button"
               disabled={isSending}
               className="mr-4 flex items-center px-3 py-1.5 text-sm font-medium rounded-md text-white bg-green-500 hover:bg-green-600 disabled:bg-green-400 transition-colors"
             >
@@ -75,6 +76,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
             
             <button
               onClick={onLogout}
+              data-track-id="logout-button"
               className="ml-4 flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             >
               <LogOut className="h-4 w-4 mr-1" />

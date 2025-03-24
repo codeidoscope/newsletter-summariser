@@ -67,6 +67,7 @@ const EmailList: React.FC<EmailListProps> = ({
         <button 
           onClick={onRefresh}
           disabled={isLoading}
+          data-track-id="refresh-emails-button"
           className="flex items-center px-3 py-1 bg-blue-500 dark:bg-blue-600 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-700 disabled:bg-blue-300 dark:disabled:bg-blue-800 transition-colors"
         >
           <RefreshCw className={`mr-1 ${isLoading ? 'animate-spin' : ''}`} size={16} />

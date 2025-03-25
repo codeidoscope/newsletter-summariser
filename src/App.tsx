@@ -241,7 +241,7 @@ const processEmailsForSummaries = async (emailsToProcess: Email[]) => {
       try {
         console.log('Sending tracking data before logout');
         
-        const url = buildApiUrl(import.meta.env.VITE_API_BASE_URL || 'http://localhost:5175', 'send-tracking-data');
+        const url = buildApiUrl('send-tracking-data');
         
         // Use fetch with keepalive for more reliable delivery during page transitions
         const response = await fetch(url, {

@@ -1,7 +1,8 @@
 {
     "ignore": [
-      "tracking_data.json",
-      "email_logs.json",
+      "trackingData/tracking_data.json",
+      "trackingData/tracking_data.*.json",
+      "trackingData/email_logs.json",
       "*.backup*"
     ]
   }

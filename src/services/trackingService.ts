@@ -1,27 +1,6 @@
 import axios from 'axios';
 import { throttle, debounce } from 'lodash';
-
-// Base URL for the tracking API
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5175';
-
-/**
- * Constructs a proper API URL based on the base URL
- * @param endpoint The API endpoint
- * @returns A properly formatted URL
- */
-const buildApiUrl = (endpoint: string): string => {
-  // Remove trailing slash from base URL if present
-  const baseUrl = API_BASE_URL.endsWith('/') 
-    ? API_BASE_URL.slice(0, -1) 
-    : API_BASE_URL;
-  
-  // Check if baseUrl already ends with /api
-  if (baseUrl.endsWith('/api')) {
-    return `${baseUrl}/${endpoint}`;
-  } else {
-    return `${baseUrl}/api/${endpoint}`;
-  }
-};
+import { buildApiUrl } from '../utils/urlHelper';
 
 // Define a type for scroll depth sections
 type ScrollDepthSection = 'top' | 'quarter' | 'half' | 'threequarters' | 'bottom';
@@ -46,77 +25,52 @@ const scrollState = {
     'threequarters': 0,
     'bottom': 0
   },
-  // Last time we updated the current depth timing
   lastDepthUpdate: 0,
-  // Current depth section
   currentDepth: 'top' as ScrollDepthSection,
-  // Elements that have been seen
   visibleElements: new Set<string>(),
   // Rapid scroll detection
   scrollEvents: 0,
   lastScrollIncrement: Date.now()
 };
 
-/**
- * Generic function to track events with simplified data structure
- */
 export const trackEvent = async (eventType: string, data: any = {}): Promise<void> => {
   try {
     const url = buildApiUrl(`track/${eventType}`);
     
-    // Make sure data is serializable
     const cleanData = JSON.parse(JSON.stringify(data));
     
     await axios.post(url, {
       data: cleanData
     });
     
-    // Only log in development, not in production
     if (import.meta.env.DEV) {
       console.log(`${eventType} event tracked successfully`);
     }
   } catch (error) {
-    // Don't throw the error, just log it
-    // We don't want tracking failures to affect the user experience
     console.error(`Error tracking ${eventType} event:`, error);
   }
 };
 
-/**
- * Tracks a user login event
- */
 export const trackLogin = async (): Promise<void> => {
   await trackEvent('login');
 };
 
-/**
- * Tracks a user logout event
- */
 export const trackLogout = async (): Promise<void> => {
   await trackEvent('logout');
 };
 
-/**
- * Tracks when a tab becomes hidden
- */
 export const trackTabHidden = async (): Promise<void> => {
   await trackEvent('tab_hidden', {
     url: window.location.pathname
   });
 };
 
-/**
- * Tracks when a tab becomes visible
- */
 export const trackTabVisible = async (): Promise<void> => {
   await trackEvent('tab_visible', {
     url: window.location.pathname
   });
 };
 
-/**
- * Send tracking data via email
- */
 export const sendTrackingDataEmail = async (userEmail: string, reason: string): Promise<void> => {
   try {
     const url = buildApiUrl('send-tracking-data');
@@ -135,9 +89,6 @@ export const sendTrackingDataEmail = async (userEmail: string, reason: string): 
   }
 };
 
-/**
- * Clear tracking data after sending
- */
 export const clearTrackingData = async (): Promise<void> => {
   try {
     const url = buildApiUrl('clear-tracking-data');
@@ -152,9 +103,6 @@ export const clearTrackingData = async (): Promise<void> => {
   }
 };
 
-/**
- * Send tracking data and optionally clear it
- */
 export const sendTrackingDataAndClear = async (userEmail: string, reason: string): Promise<void> => {
   await sendTrackingDataEmail(userEmail, reason);
   
@@ -162,9 +110,6 @@ export const sendTrackingDataAndClear = async (userEmail: string, reason: string
   // await clearTrackingData();
 };
 
-/**
- * Check if an element has a specific class
- */
 const hasClass = (element: HTMLElement, className: string): boolean => {
   if (typeof element.className === 'string') {
     return element.className.split(' ').includes(className);
@@ -175,9 +120,6 @@ const hasClass = (element: HTMLElement, className: string): boolean => {
   }
 };
 
-/**
- * Get a descriptive name for the clicked element
- */
 const getElementDescription = (element: HTMLElement): string => {
   // Check for expandable email items (specific to this app)
   if (isEmailItem(element)) {
@@ -250,9 +192,6 @@ const getElementDescription = (element: HTMLElement): string => {
   return `${element.tagName.toLowerCase()}${className ? ': ' + className : ''}`;
 };
 
-/**
- * Check if element is an email item in the list
- */
 const isEmailItem = (element: HTMLElement): boolean => {
   const item = element.closest('.border.rounded-lg');
   if (!item) return false;
@@ -261,9 +200,6 @@ const isEmailItem = (element: HTMLElement): boolean => {
          !!item.querySelector('.text-sm.text-gray-600');
 };
 
-/**
- * Determine if an email item is expanded or collapsed
- */
 const isElementExpanded = (element: HTMLElement): boolean => {
   const item = element.closest('.border.rounded-lg');
   if (!item) return false;
@@ -271,9 +207,6 @@ const isElementExpanded = (element: HTMLElement): boolean => {
   return !!item.querySelector('.px-4.pb-4') || !!item.querySelector('[data-lucide="chevron-up"]');
 };
 
-/**
- * Check if an element is meant to be clickable
- */
 const isClickable = (element: HTMLElement): boolean => {
   const clickableTags = ['a', 'button', 'input', 'select', 'textarea'];
   if (clickableTags.includes(element.tagName.toLowerCase())) return true;
@@ -288,31 +221,22 @@ const isClickable = (element: HTMLElement): boolean => {
   return false;
 };
 
-/**
- * Tracks mouse clicks with enhanced element identification
- */
 const trackClick = async (e: MouseEvent): Promise<void> => {
   const { clientX, clientY } = e;
   const targetElement = e.target as HTMLElement;
   
-  const elementDescription = getElementDescription(targetElement);
-  
+  const trackableElement = targetElement.closest('[data-track-id]');
+  const trackId = trackableElement ? trackableElement.getAttribute('data-track-id') : null;
+
   await trackEvent('click', {
     x: clientX,
     y: clientY,
     viewportWidth: window.innerWidth,
     viewportHeight: window.innerHeight,
-    elementType: targetElement.tagName.toLowerCase(),
-    elementClasses: typeof targetElement.className === 'string' ? 
-      targetElement.className : 
-      (targetElement.classList ? targetElement.classList.value : ''),
-    description: elementDescription
+    ...(trackId && { trackId })
   });
 };
 
-/**
- * Tracks mouse movement (throttled)
- */
 const trackMouseMove = throttle(async (e: MouseEvent): Promise<void> => {
   const { clientX, clientY } = e;
   
@@ -324,41 +248,30 @@ const trackMouseMove = throttle(async (e: MouseEvent): Promise<void> => {
   });
 }, 1000); // Only track once per second to avoid too much data
 
-/**
- * Tracks element focus
- */
 const trackFocus = async (e: FocusEvent): Promise<void> => {
   const targetElement = e.target as HTMLElement;
+
+  const trackableElement = targetElement.closest('[data-track-id]');
+  const trackId = trackableElement ? trackableElement.getAttribute('data-track-id') : null;
+
   
   await trackEvent('focus', {
-    elementType: targetElement.tagName.toLowerCase(),
-    elementClasses: typeof targetElement.className === 'string' ? 
-      targetElement.className : 
-      (targetElement.classList ? targetElement.classList.value : ''),
+    ...(trackId && { trackId })
   });
 };
 
-/**
- * Tracks copy events
- */
 const trackCopy = async (): Promise<void> => {
   await trackEvent('copy', {
     event: "copy text"
   });
 };
 
-/**
- * Tracks paste events
- */
 const trackPaste = async (): Promise<void> => {
   await trackEvent('paste', {
     event: "paste text"
   });
 };
 
-/**
- * Updates the time spent at the current scroll depth
- */
 const updateScrollDepthTiming = (): void => {
   const now = Date.now();
   const timeDiff = now - scrollState.lastDepthUpdate;
@@ -372,9 +285,6 @@ const updateScrollDepthTiming = (): void => {
   scrollState.lastDepthUpdate = now;
 };
 
-/**
- * Determines which section of the page the user is currently viewing
- */
 const updateCurrentDepth = (scrollPercent: number): void => {
   const oldDepth = scrollState.currentDepth;
   
@@ -395,9 +305,6 @@ const updateCurrentDepth = (scrollPercent: number): void => {
   }
 };
 
-/**
- * Identifies important elements that are currently visible in the viewport
- */
 const checkVisibleElements = (): void => {
   const trackableElements = document.querySelectorAll('[id], [data-section]');
   
@@ -417,9 +324,6 @@ const checkVisibleElements = (): void => {
   });
 };
 
-/**
- * Calculate reading speed based on scroll patterns
- */
 const getReadingPattern = (): string => {
   // Reset scroll events counter after 2 seconds of inactivity
   const now = Date.now();
@@ -429,22 +333,17 @@ const getReadingPattern = (): string => {
   
   scrollState.scrollEvents++;
   scrollState.lastScrollIncrement = now;
-  
-  // Determine reading pattern
+
   if (scrollState.scrollEvents > 5) {
-    return 'skimming'; // Fast scrolling
+    return 'skimming';
   } else if (scrollState.scrollEvents > 2) {
-    return 'scanning'; // Moderate scrolling
+    return 'scanning';
   } else {
-    return 'reading'; // Slow, deliberate scrolling
+    return 'reading';
   }
 };
 
-/**
- * Tracks scroll actions with rich metadata
- */
 const trackScroll = throttle((): void => {
-  // Get current scroll position and calculate percentage
   const scrollPosition = window.scrollY;
   const documentHeight = document.documentElement.scrollHeight;
   const viewportHeight = window.innerHeight;
@@ -453,12 +352,10 @@ const trackScroll = throttle((): void => {
     ? (scrollPosition / scrollableDistance) * 100 
     : 0;
   
-  // Determine scroll direction
   const direction = scrollPosition > scrollState.lastPosition ? 'down' : 'up';
   const directionChanged = direction !== scrollState.direction;
   scrollState.direction = direction;
   
-  // Check scroll milestones
   const milestones = scrollState.milestones;
   if (scrollPercentage >= 25 && !milestones['25%']) {
     milestones['25%'] = true;
@@ -480,37 +377,27 @@ const trackScroll = throttle((): void => {
   updateCurrentDepth(scrollPercentage);
   
   checkVisibleElements();
+    if (directionChanged) {
+      const visibleSections = Array.from(scrollState.visibleElements);
+      
+      trackEvent('scroll_direction_change', {
+        from: scrollState.lastPosition,
+        to: scrollPosition,
+        oldDirection: scrollState.direction === 'down' ? 'up' : 'down',
+        newDirection: scrollState.direction,
+        percentage: Math.round(scrollPercentage),
+        visibleSections,
+      });
+    }
   
-  // Only send detailed scroll data periodically or on direction change
-  if (directionChanged) {
-    // Convert Set to Array for serialization
-    const visibleSections = Array.from(scrollState.visibleElements);
-    
-    trackEvent('scroll_direction_change', {
-      from: scrollState.lastPosition,
-      to: scrollPosition,
-      oldDirection: scrollState.direction === 'down' ? 'up' : 'down',
-      newDirection: scrollState.direction,
-      percentage: Math.round(scrollPercentage),
-      visibleSections,
-    });
-  }
-  
-  // Update the last position
-  scrollState.lastPosition = scrollPosition;
+    scrollState.lastPosition = scrollPosition;
 }, 500); // Throttle to twice per second
 
-/**
- * Tracks when scrolling stops and creates a scroll session summary
- */
 const trackScrollEnd = debounce((): void => {
-  // Update timing for the current depth before sending
   updateScrollDepthTiming();
-  
-  // Convert Set to Array for serialization
+
   const viewedSections = Array.from(scrollState.visibleElements);
-  
-  // Get reading pattern
+
   const readingPattern = getReadingPattern();
   
   trackEvent('scroll_session', {
@@ -528,9 +415,6 @@ const trackScrollEnd = debounce((): void => {
   });
 }, 3000); // Wait 3 seconds after scrolling stops
 
-/**
- * Initializes all tracking for the current session
- */
 export const initTracking = (): void => {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
@@ -554,7 +438,6 @@ export const initTracking = (): void => {
   document.addEventListener('copy', trackCopy);
   document.addEventListener('paste', trackPaste);
   
-  // Initialize scroll tracking
   scrollState.startTime = Date.now();
   scrollState.lastDepthUpdate = Date.now();
   scrollState.initialPosition = window.scrollY;
@@ -563,7 +446,6 @@ export const initTracking = (): void => {
     trackScrollEnd();
   });
   
-  // Track when the page loads
   trackEvent('page_load', {
     referrer: document.referrer || '',
     viewportWidth: window.innerWidth,

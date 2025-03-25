@@ -13,6 +13,7 @@ const EmailFilter: React.FC<EmailFilterProps> = ({ activeFilter, onFilterChange 
     <div className="flex flex-wrap gap-2">
       <button
         onClick={() => onFilterChange('all')}
+        data-track-id="all-emails-filter-button"
         className={`flex items-center px-3 py-1.5 rounded-md text-sm transition-colors ${
           activeFilter === 'all'
             ? 'bg-blue-500 text-white'
@@ -26,6 +27,7 @@ const EmailFilter: React.FC<EmailFilterProps> = ({ activeFilter, onFilterChange 
       
       <button
         onClick={() => onFilterChange('unread')}
+        data-track-id="unread-emails-filter-button"
         className={`flex items-center px-3 py-1.5 rounded-md text-sm transition-colors ${
           activeFilter === 'unread'
             ? 'bg-blue-500 text-white'
@@ -39,6 +41,7 @@ const EmailFilter: React.FC<EmailFilterProps> = ({ activeFilter, onFilterChange 
       
       <button
         onClick={() => onFilterChange('today')}
+        data-track-id="today-emails-filter-button"
         className={`flex items-center px-3 py-1.5 rounded-md text-sm transition-colors ${
           activeFilter === 'today'
             ? 'bg-blue-500 text-white'
@@ -52,6 +55,7 @@ const EmailFilter: React.FC<EmailFilterProps> = ({ activeFilter, onFilterChange 
       
       <button
         onClick={() => onFilterChange('week')}
+        data-track-id="this-week-emails-filter-button"
         className={`flex items-center px-3 py-1.5 rounded-md text-sm transition-colors ${
           activeFilter === 'week'
             ? 'bg-blue-500 text-white'

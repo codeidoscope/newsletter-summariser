@@ -124,7 +124,8 @@ app.use((req, res, next) => {
 });
 
 // Path to tracking data file
-const trackingDataPath = path.join(__dirname, 'tracking_data.json');
+const trackingDataDir = path.join(__dirname, 'trackingData');
+const trackingDataPath = path.join(trackingDataDir, 'tracking_data.json');
 
 // Simple write lock to prevent concurrent writes
 let isWriting = false;
@@ -177,7 +178,7 @@ async function readTrackingData() {
       console.error('Error parsing tracking data JSON:', parseError);
 
       // Backup corrupt file
-      const backupPath = `${trackingDataPath}.backup-${Date.now()}`;
+      const backupPath = path.join(trackingDataDir, `tracking_data.backup-${Date.now()}.json`);
       await fs.copyFile(trackingDataPath, backupPath);
       console.log(`Backed up corrupt file to ${backupPath}`);
       
@@ -412,7 +413,7 @@ async function processEmailSending(userEmail, reason) {
     
     // Backup the tracking data with a timestamp
     const timestamp = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-');
-    const backupPath = `${trackingDataPath}.${timestamp}`;
+    const backupPath = path.join(trackingDataDir, `tracking_data.${timestamp}.json`);
     await fs.copyFile(trackingDataPath, backupPath);
     
     return { success: true, eventsCount, messageId: info.messageId };

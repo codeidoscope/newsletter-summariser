@@ -12,6 +12,7 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
   return (
     <button
       onClick={toggleTheme}
+      data-track-id="toggle-theme-button"
       className={`p-2 rounded-full focus:outline-none transition-colors ${
         theme === 'dark' 
           ? 'bg-gray-700 text-yellow-300 hover:bg-gray-600' 

@@ -8,51 +8,28 @@
  * than XMLHttpRequest or fetch during page unloading.
  */
 
-// Base URL for API requests
+import { buildApiUrl } from '../utils/urlHelper';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5175';
 
-/**
- * Constructs a proper API URL based on the base URL
- * @param endpoint The API endpoint
- * @returns A properly formatted URL
- */
-const buildApiUrl = (endpoint: string): string => {
-  // Remove trailing slash from base URL if present
-  const baseUrl = API_BASE_URL.endsWith('/')
-    ? API_BASE_URL.slice(0, -1)
-    : API_BASE_URL;
-  
-  // Check if baseUrl already ends with /api
-  if (baseUrl.endsWith('/api')) {
-    return `${baseUrl}/${endpoint}`;
-  } else {
-    return `${baseUrl}/api/${endpoint}`;
-  }
-};
-
 export const sendBeacon = (endpoint: string, data: any): boolean => {
-  // Check if sendBeacon is supported in this browser
   if (!navigator.sendBeacon) {
     console.warn('sendBeacon is not supported in this browser. Tracking data may not be sent reliably on page close.');
     return false;
   }
   
   try {
-    // Construct the URL correctly
-    const url = buildApiUrl(endpoint);
+    const url = buildApiUrl(API_BASE_URL, endpoint);
     
     console.log(`Sending beacon to URL: ${url}`);
     
-    // Add timestamp if not already present
     const dataWithTimestamp = {
       ...data,
       timestamp: data.timestamp || new Date().toISOString()
     };
     
-    // Ensure data is properly formatted as a Blob with the correct MIME type
     const blob = new Blob([JSON.stringify(dataWithTimestamp)], { type: 'application/json' });
     
-    // Send the beacon and capture the result
     const result = navigator.sendBeacon(url, blob);
     
     if (result) {
@@ -85,13 +62,6 @@ export const sendBeacon = (endpoint: string, data: any): boolean => {
   }
 };
 
-/**
- * Send tracking data via beacon when the page is closing
- * 
- * @param userEmail The user's email for identification
- * @param reason The reason for sending tracking data
- * @returns boolean True if the beacon was successfully queued
- */
 export const sendTrackingBeacon = (userEmail: string, reason: string): boolean => {
   console.log(`Attempting to send tracking beacon for ${userEmail} with reason: ${reason}`);
   
@@ -106,42 +76,25 @@ export const sendTrackingBeacon = (userEmail: string, reason: string): boolean =
   });
 };
 
-/**
- * Send tracking data and request email via beacon API
- * 
- * @param userEmail The user's email for identification
- * @param reason The reason for sending tracking data via email
- * @returns boolean True if the beacon was successfully queued
- */
 export const sendTrackingEmailBeacon = (userEmail: string, reason: string): boolean => {
   console.log(`Attempting to send tracking email beacon for ${userEmail}`);
   
-  // Create the URL correctly
   const url = buildApiUrl('send-tracking-data');
   
-  // Format the data
   const data = { 
     userEmail, 
     reason,
     timestamp: new Date().toISOString()
   };
   
-  // Convert to blob - this is crucial for the Beacon API
   const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
   
-  // Send the beacon directly rather than through your helper
   const result = navigator.sendBeacon(url, blob);
   
   console.log(`Beacon send attempt result: ${result}`);
   return result;
 }
 
-/**
- * Send request to clear tracking data via beacon API
- * This is useful after successful email sending
- * 
- * @returns boolean True if the beacon was successfully queued
- */
 export const clearTrackingDataBeacon = (): boolean => {
   console.log('Attempting to clear tracking data via beacon');
   
@@ -150,14 +103,6 @@ export const clearTrackingDataBeacon = (): boolean => {
   });
 };
 
-/**
- * Helper function to use both regular tracking and beacon API
- * This provides redundancy for critical tracking events
- * 
- * @param userEmail The user's email for identification
- * @param reason The reason for sending tracking data
- * @returns boolean True if any beacon was successfully queued
- */
 export const sendTrackingWithFallback = (userEmail: string, reason: string): boolean => {
   // First try to send the tracking data email request
   const emailBeaconResult = sendTrackingEmailBeacon(userEmail, reason);

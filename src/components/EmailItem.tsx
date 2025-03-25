@@ -95,6 +95,7 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
                 <span className="ml-2">
                   <a 
                     href={unsubscribeLink}
+                    data-track-id="unsubscribe-link"
                     className="text-blue-500 dark:text-blue-400 hover:underline"
                     onClick={(e) => e.stopPropagation()} // Prevent expanding when clicking the link
                     target="_blank" 
@@ -109,6 +110,7 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
             <a
                 href={`https://mail.google.com/mail/u/0/#inbox/${email.id}`}
                 className="text-green-600 hover:text-green-800 dark:text-green-500 dark:hover:text-green-400 p-1 rounded hover:bg-green-50 dark:hover:bg-green-900/30 flex items-center text-xs"
+                data-track-id="view-in-gmail-button"
                 onClick={(e) => e.stopPropagation()} // Prevent expanding when clicking the link
                 target="_blank"
                 rel="noopener noreferrer"
@@ -129,6 +131,7 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
               {email.isUnread && (
                 <button
                   className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 flex items-center text-xs"
+                  data-track-id="mark-as-read-button"
                   onClick={handleMarkAsRead}
                   disabled={email.actionLoading === 'mark-read'}
                   title="Mark as read"
@@ -144,6 +147,7 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
               )}
               <button
                 className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center text-xs"
+                data-track-id="delete-email-button"
                 onClick={handleDelete}
                 disabled={email.actionLoading === 'delete'}
                 title="Delete email"
@@ -183,7 +187,7 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
           )}
         </div>
         <div className="ml-4 text-gray-500 dark:text-gray-400">
-          {expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          {expanded ? <ChevronUp data-track-id="collapse-section-chevron" size={20} /> : <ChevronDown data-track-id="open-section-chevron" size={20} />}
         </div>
       </div>
       
@@ -226,6 +230,7 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
                 {email.isUnread && (
                   <button
                     className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 flex items-center text-sm"
+                    data-track-id="mark-as-read-button"
                     onClick={handleMarkAsRead}
                     disabled={email.actionLoading === 'mark-read'}
                   >
@@ -258,6 +263,7 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
                 </a>
                 <button
                   className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center text-sm"
+                  data-track-id="delete-email-button"
                   onClick={handleDelete}
                   disabled={email.actionLoading === 'delete'}
                 >
@@ -272,6 +278,7 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
               
               <div
                 className="p-2 cursor-pointer flex items-center justify-center text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded"
+                data-track-id="close-original-email-link"
                 onClick={() => toggleExpanded(false)}
               >
                 <ChevronUp size={20} className="mr-2" /> Close original email

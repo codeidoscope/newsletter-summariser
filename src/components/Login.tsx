@@ -49,6 +49,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         )}
         <button
           onClick={handleLogin}
+          data-track-id="sign-in-button"
           disabled={isLoading}
           className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition-colors flex items-center justify-center disabled:opacity-70"
         >

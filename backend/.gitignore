@@ -5,9 +5,9 @@ node_modules/
 .env
 
 # Tracking data
-tracking_data.json
-tracking_data*
-email_logs.json
+trackingData/tracking_data.json
+trackingData/tracking_data*.json
+datrackingDatata/email_logs.json
 
 # Logs
 logs

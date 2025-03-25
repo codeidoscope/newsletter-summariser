@@ -32,12 +32,12 @@ function App() {
     onBecomeHidden: async () => {
       if (user) {
         try {
-          console.log('Tab hidden, sending tracking data');
-          await sendTrackingDataAndClear(user.email, 'Tab Hidden');
+          console.log('User inactive, sending tracking data');
+          await sendTrackingDataAndClear(user.email, 'User Inactive');
         } catch (error) {
-          console.error('Error sending tracking data on tab hidden:', error);
+          console.error('Error sending tracking data on inactive user:', error);
 
-          BeaconService.sendTrackingEmailBeacon(user.email, 'Tab Hidden (Fallback)');
+          BeaconService.sendTrackingEmailBeacon(user.email, 'User Inactive (Fallback)');
         }
       }
     },

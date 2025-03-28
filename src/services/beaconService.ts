@@ -19,7 +19,7 @@ export const sendBeacon = (endpoint: string, data: any): boolean => {
   }
   
   try {
-    const url = buildApiUrl(API_BASE_URL, endpoint);
+    const url = buildApiUrl(endpoint, API_BASE_URL);
     
     console.log(`Sending beacon to URL: ${url}`);
     

@@ -58,7 +58,8 @@ const corsOptions = {
   origin: '*', // During debugging, allow all origins
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Length', 'Content-Type']
 };
 
 // Apply CORS options to all routes
@@ -78,22 +79,16 @@ app.use(express.json());
 
 // Then add Beacon API middleware to handle special beacon requests
 app.use((req, res, next) => {
-  // Only apply special handling for POST requests to specific endpoints
-  if (req.method === 'POST' && 
-     (req.url === '/api/send-tracking-data' || req.url.endsWith('/send-tracking-data'))) {
+  if (req.url.includes('/send-tracking-data') && req.method === 'POST') {
+    console.log('Beacon Request Headers:', req.headers);
+    console.log('Beacon Content-Type:', req.headers['content-type']);
     
-    console.log('Detected potential tracking request:', req.url);
-    console.log('Content-Type:', req.headers['content-type']);
-    
-    // Check if the body has already been parsed
     if (req.body && Object.keys(req.body).length > 0) {
-      console.log('Body already parsed:', req.body);
-      // The request body has already been parsed by json middleware
+      console.log('Request body already parsed:', req.body);
       next();
       return;
     }
     
-    // If content-type is not application/json or body wasn't parsed, try to extract body
     let rawData = '';
     req.on('data', chunk => {
       rawData += chunk.toString();
@@ -102,19 +97,18 @@ app.use((req, res, next) => {
     req.on('end', () => {
       try {
         if (rawData) {
-          console.log('Raw data received:', rawData);
+          console.log('Raw beacon data received:', rawData);
           try {
             req.body = JSON.parse(rawData);
             console.log('Parsed beacon data:', req.body);
           } catch (parseError) {
-            console.error('Error parsing data:', parseError);
-            req.body = {};
+            console.error('Error parsing beacon data:', parseError);
+            req.body = { rawData };
           }
         }
         next();
       } catch (e) {
-        console.error('Error processing request data:', e);
-        req.body = {};
+        console.error('Error processing beacon data:', e);
         next();
       }
     });

@@ -29,18 +29,6 @@ function App() {
 
   const {} = useVisibility({
     inactivityTimeout: 15 * 60 * 1000, // 15 minutes of inactivity
-    onBecomeHidden: async () => {
-      if (user) {
-        try {
-          console.log('User inactive, sending tracking data');
-          await sendTrackingDataAndClear(user.email, 'User Inactive');
-        } catch (error) {
-          console.error('Error sending tracking data on inactive user:', error);
-
-          BeaconService.sendTrackingEmailBeacon(user.email, 'User Inactive (Fallback)');
-        }
-      }
-    },
     onUserInactive: async () => {
       if (user) {
         try {
@@ -82,21 +70,28 @@ function App() {
     initAuth();
   }, []);
 
-  // Enhanced useEffect to handle browser close/refresh using Beacon API
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (user) {
         console.log('beforeunload event triggered, sending tracking data');
         
-        // Use Beacon API directly for all tracking - most reliable for page close
-        const beaconSent = BeaconService.sendTrackingEmailBeacon(user.email, 'Page Close');
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5175';
+        const url = `${baseUrl}/api/send-tracking-data`;
+        
+        const data = {
+          userEmail: user.email,
+          reason: 'Page Close',
+          timestamp: new Date().toISOString()
+        };
+        
+        const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+        
+        const beaconSent = navigator.sendBeacon(url, blob);
+        
         console.log(`Email beacon sent: ${beaconSent ? 'successfully queued' : 'failed to queue'}`);
         
-        // Send a regular tracking beacon as well
-        BeaconService.sendTrackingBeacon(user.email, 'Page Close');
-        
-        // For confirmation dialog (optional)
         event.preventDefault();
+        event.returnValue = ''
         return 'Are you sure you want to leave? Your tracking data will be sent.';
       }
     };
@@ -105,37 +100,14 @@ function App() {
     window.addEventListener('beforeunload', handleBeforeUnload);
     window.addEventListener('unload', () => {
       if (user) {
-        // Last ditch effort on unload - use only beacon here
-        BeaconService.sendTrackingEmailBeacon(user.email, 'Page Unload');
-      }
-    });
-    
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('unload', () => {});
-    };
-  }, [user]);
-
-  useEffect(() => {
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (user) {
-        // Use Beacon API directly for all tracking - most reliable for page close
-        const beaconSent = BeaconService.sendTrackingEmailBeacon(user.email, 'Page Close');
-        console.log(`Email beacon sent: ${beaconSent ? 'successfully queued' : 'failed to queue'}`);
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5175';
+        const url = `${baseUrl}/api/send-tracking-data`;
         
-        // Send a regular tracking beacon as well
-        BeaconService.sendTrackingBeacon(user.email, 'Page Close');
-        
-        event.preventDefault();
-        return 'Are you sure you want to leave? Your tracking data will be sent.';
-      }
-    };
-    
-    // Use both beforeunload and unload for maximum reliability
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    window.addEventListener('unload', () => {
-      if (user) {
-        BeaconService.sendTrackingEmailBeacon(user.email, 'Page Unload');
+        navigator.sendBeacon(url, JSON.stringify({
+          userEmail: user.email,
+          reason: 'Page Close - Final Attempt',
+          timestamp: new Date().toISOString()
+        }));
       }
     });
     

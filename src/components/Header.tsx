@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LogOut, Mail, Send, CheckCircle } from 'lucide-react';
+import { LogOut, Mail, Send, CheckCircle, User } from 'lucide-react';
 import { UserProfile } from '../types';
 import ThemeToggle from './ThemeToggle';
 import { sendTrackingDataAndClear } from '../services/trackingService';
@@ -12,6 +12,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
   const [isSending, setIsSending] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [imageError, setImageError] = useState(false);
   
   const handleSendTracking = async () => {
     setIsSending(true);
@@ -24,6 +25,10 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
     } finally {
       setIsSending(false);
     }
+  };
+
+  const handleImageError = () => {
+    setImageError(true);
   };
 
   return (
@@ -66,11 +71,19 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
             <ThemeToggle className="mr-4" />
             
             <div className="flex items-center">
-              <img
-                className="h-8 w-8 rounded-full"
-                src={user.picture}
-                alt={user.name}
-              />
+              {imageError ? (
+                <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400">
+                  <User size={20} />
+                </div>
+              ) : (
+                <img
+                  className="h-8 w-8 rounded-full object-cover bg-gray-100 dark:bg-gray-700"
+                  src={user.picture}
+                  alt={user.name}
+                  onError={handleImageError}
+                  referrerPolicy="no-referrer" 
+                />
+              )}
               <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">{user.name}</span>
             </div>
             

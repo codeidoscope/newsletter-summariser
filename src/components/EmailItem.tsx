@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp, RefreshCw, Trash, CheckSquare, Loader } from 'l
 import { Email } from '../types';
 import EmailRenderer from './EmailRenderer';
 import DeleteConfirmationDialog from './DeleteConfirmationDialog';
+import { parseEmailDate, getRelativeTimeString, formatDate } from '../utils/dateUtils';
 
 interface EmailItemProps {
   email: Email;
@@ -59,6 +60,11 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
   // Use local state to determine if we have an unsubscribe link
   const hasUnsubscribeLink = Boolean(unsubscribeLink);
 
+  // Parse the date to display relative time or formatted date
+  const parsedDate = parseEmailDate(email.date);
+  const relativeDate = getRelativeTimeString(parsedDate);
+  const fullDate = formatDate(parsedDate);
+
   return (
     <div
       ref={emailRef}
@@ -79,7 +85,12 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
         <div className="flex-1">
           <div className="flex justify-between">
             <h3 className="font-medium text-lg text-gray-900 dark:text-white">{email.subject}</h3>
-            <span className="text-sm text-gray-500 dark:text-gray-400">{email.date}</span>
+            <span 
+              className="text-sm text-gray-500 dark:text-gray-400" 
+              title={fullDate} // Show full date on hover
+            >
+              {relativeDate}
+            </span>
           </div>
           
           {/* Changed from <p> to <div> to fix DOM nesting issue */}
@@ -215,7 +226,10 @@ const EmailItem: React.FC<EmailItemProps> = ({ email, onMarkAsRead, onDeleteEmai
           </div>
           
           <div className="mt-4">
-            <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300 mb-1">Original Email:</h4>
+            <div className="flex justify-between items-center mb-1">
+              <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300">Original Email:</h4>
+              <span className="text-xs text-gray-500 dark:text-gray-400">{fullDate}</span>
+            </div>
 
             <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded text-sm max-h-[500px] overflow-y-auto">
               <EmailRenderer

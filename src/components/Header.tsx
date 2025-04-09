@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { LogOut, Mail, Send, CheckCircle, User } from 'lucide-react';
+import { LogOut, Mail, User } from 'lucide-react';
 import { UserProfile } from '../types';
 import ThemeToggle from './ThemeToggle';
-import { sendTrackingDataAndClear } from '../services/trackingService';
 
 interface HeaderProps {
   user: UserProfile;
@@ -10,22 +9,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
-  const [isSending, setIsSending] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
   const [imageError, setImageError] = useState(false);
-  
-  const handleSendTracking = async () => {
-    setIsSending(true);
-    try {
-      await sendTrackingDataAndClear(user.email, 'Manual Send from Header Button');
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000); // Hide success message after 3 seconds
-    } catch (error) {
-      console.error('Error sending tracking data:', error);
-    } finally {
-      setIsSending(false);
-    }
-  };
 
   const handleImageError = () => {
     setImageError(true);

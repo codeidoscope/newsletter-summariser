@@ -68,7 +68,7 @@ export const parseEmailDate = (dateString: string): Date => {
  * Formats a date for display
  */
 export const formatDate = (date: Date): string => {
-  return format(date, 'MMM d, yyyy h:mm a');
+  return format(date, 'd MMM yyyy h:mm a');
 };
 
 /**
@@ -121,5 +121,5 @@ export const getRelativeTimeString = (date: Date): string => {
     return `${days} days ago`;
   }
 
-  return format(date, 'MMM d, yyyy');
+  return format(date, 'd MMM yyyy');
 };

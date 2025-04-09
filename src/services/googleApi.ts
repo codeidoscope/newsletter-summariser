@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { format } from 'date-fns';
 import { Email, UserProfile } from '../types';
 import { removeToken } from './authService';
 
@@ -183,15 +184,8 @@ export const fetchEmails = async (
         // Extract both HTML and text bodies
         const { htmlBody, textBody } = extractEmailContent(payload);
 
-        // Format date without seconds
-        const date = new Date(parseInt(internalDate)).toLocaleString(undefined, {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          // seconds are intentionally omitted
-        });
+        // Format date with date-fns for more consistent results across browsers
+        const date = format(new Date(parseInt(internalDate)), 'yyyy-MM-dd HH:mm');
 
         // Check if the email is unread
         const isUnread = labelIds && labelIds.includes('UNREAD');
